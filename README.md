@@ -521,6 +521,326 @@ Search for entries within a specific database with simple text query.
 - `query` (required) - Search query text
 - `property_filters` (optional) - Simplified filters (e.g., `{"Status": "Done"}`)
 
+## Advanced Tools
+
+### Batch Operations
+
+Perform operations on multiple pages at once with automatic rate limiting.
+
+#### 25. batch_create_pages
+
+Create multiple pages in a single batch operation.
+
+**Parameters:**
+- `pages` (required) - Array of page objects, each containing:
+  - `parent` - Parent object with `database_id` or `page_id`
+  - `properties` - Page properties
+  - `children` (optional) - Block content
+  - `icon` (optional) - Page icon
+- `continue_on_error` (optional, boolean) - Continue on failures (default: false)
+
+**Returns:**
+```json
+{
+  "created": [
+    {"id": "page-id-1", "url": "https://notion.so/..."},
+    {"id": "page-id-2", "url": "https://notion.so/..."}
+  ],
+  "failed": [
+    {"index": 2, "error": "invalid properties"}
+  ],
+  "summary": {
+    "total": 3,
+    "succeeded": 2,
+    "failed": 1
+  }
+}
+```
+
+**Rate Limiting:** Automatically adds 350ms delay between operations.
+
+#### 26. batch_update_pages
+
+Update multiple pages with the same property changes.
+
+**Parameters:**
+- `page_ids` (required) - Array of page IDs to update
+- `properties` (optional) - Properties to update on all pages
+- `archived` (optional) - Archive/unarchive status
+- `icon` (optional) - Update icon on all pages
+- `cover` (optional) - Update cover on all pages
+- `continue_on_error` (optional, boolean) - Continue on failures
+
+**Example:**
+```json
+{
+  "page_ids": ["id1", "id2", "id3"],
+  "properties": {
+    "Status": {
+      "select": {"name": "Complete"}
+    }
+  },
+  "continue_on_error": true
+}
+```
+
+#### 27. batch_delete_pages
+
+Archive (delete) multiple pages at once.
+
+**Parameters:**
+- `page_ids` (required) - Array of page IDs to archive
+- `continue_on_error` (optional, boolean) - Continue on failures
+
+### Template System
+
+Create pages from predefined templates with variable substitution.
+
+#### 28. create_page_from_template
+
+Create a new page using a built-in template.
+
+**Parameters:**
+- `template_name` (required) - Template to use (see available templates below)
+- `parent_page_id` or `parent_database_id` (required) - Where to create the page
+- `title` (required) - Page title (supports variable placeholders)
+- `variables` (optional) - Custom variable values for substitution
+
+**Available Templates:**
+
+1. **meeting_notes** - Meeting notes with attendees, agenda, discussion, decisions, and action items
+2. **daily_log** - Daily log with morning priorities, accomplishments, blockers, and tomorrow's plan
+3. **project_brief** - Project brief with overview, goals, timeline, stakeholders, resources, and risks
+4. **sprint_planning** - Sprint planning with goal, capacity, stories, dependencies, and risks
+5. **retrospective** - Retrospective with what went well, improvements, and action items
+
+**Supported Variables:**
+- `{date}` - Current date (YYYY-MM-DD)
+- `{datetime}` - Current date and time
+- `{time}` - Current time (HH:MM)
+- Custom variables from the `variables` parameter
+
+**Example:**
+```json
+{
+  "template_name": "meeting_notes",
+  "parent_page_id": "abc123...",
+  "title": "Team Sync - {date}",
+  "variables": {
+    "team_name": "Engineering"
+  }
+}
+```
+
+#### 29. list_templates
+
+List all available templates with their structure.
+
+**Parameters:** None
+
+**Returns:** Array of templates with names, descriptions, and structure previews.
+
+### Export & Backup
+
+Export Notion content to portable formats.
+
+#### 30. export_page_as_markdown
+
+Export a Notion page to clean Markdown format.
+
+**Parameters:**
+- `page_id` (required) - Page ID to export
+- `include_children` (optional, boolean) - Recursively export child blocks (default: false)
+- `frontmatter` (optional, boolean) - Include YAML frontmatter with metadata (default: false)
+
+**Block to Markdown Mapping:**
+- `paragraph` → plain text
+- `heading_1/2/3` → `#`, `##`, `###` + text
+- `bulleted_list_item` → `- ` + text
+- `numbered_list_item` → `1. ` + text
+- `to_do` → `- [ ]` or `- [x]` + text
+- `code` → ` ```language\ncode\n``` `
+- `quote` → `> ` + text
+- `divider` → `---`
+- `callout` → `> 💡 ` + text
+- `child_page` → `[Page Title](URL)`
+
+**Rich Text Formatting:**
+- Bold: `**text**`
+- Italic: `*text*`
+- Code: `` `text` ``
+- Link: `[text](url)`
+- Strikethrough: `~~text~~`
+
+**Example Response:**
+```json
+{
+  "markdown": "# Page Title\n\n## Section\n\nContent here...",
+  "metadata": {
+    "title": "Page Title",
+    "notion_url": "https://notion.so/...",
+    "created_time": "2024-01-15T10:30:00Z",
+    "last_edited_time": "2024-01-20T14:22:00Z"
+  }
+}
+```
+
+**With Frontmatter:**
+```markdown
+---
+title: Page Title
+notion_url: https://notion.so/...
+created: 2024-01-15T10:30:00Z
+last_edited: 2024-01-20T14:22:00Z
+---
+
+# Page Title
+
+Content here...
+```
+
+#### 31. export_database_as_csv
+
+Export database entries as CSV.
+
+**Parameters:**
+- `database_id` (required) - Database ID to export
+- `filter` (optional) - Filter entries to export
+- `include_archived` (optional, boolean) - Include archived entries (default: false)
+
+**Returns:**
+```json
+{
+  "csv": "Name,Status,Due Date\nTask 1,Done,2024-01-15\nTask 2,In Progress,2024-01-20",
+  "row_count": 2
+}
+```
+
+**Property Type Handling:**
+- `title/rich_text` → plain text
+- `number` → numeric value
+- `select` → option name
+- `multi_select` → names joined with semicolon
+- `date` → start date (or date range)
+- `checkbox` → "true"/"false"
+- `url/email/phone` → direct value
+- `people` → names joined with semicolon
+
+### Smart Queries
+
+Intelligent query helpers for common use cases.
+
+#### 32. get_recently_edited
+
+Get pages edited within a time window.
+
+**Parameters:**
+- `days` (optional, number) - Days to look back (default: 7)
+- `database_id` (optional) - Limit to specific database
+- `limit` (optional, number) - Max results (default: 50)
+
+**Example:**
+```json
+{
+  "days": 3,
+  "limit": 20
+}
+```
+
+**Use Cases:**
+- "Show me pages I worked on this week"
+- "What changed in the last 24 hours?"
+- "Find recently updated project pages"
+
+#### 33. get_my_tasks
+
+Smart task finder for the current user.
+
+**Parameters:**
+- `database_id` (optional) - Specific tasks database (auto-searches if not provided)
+- `statuses` (optional, array) - Status values to include (default: ["In Progress", "To Do", "Not Started"])
+- `include_overdue` (optional, boolean) - Include overdue tasks (default: true)
+- `limit` (optional, number) - Max tasks (default: 50)
+
+**Property Detection:**
+Automatically detects property names including:
+- **Status**: "Status", "State", "Progress", "Stage"
+- **Assignee**: "Assigned To", "Assignee", "Owner", "Assigned"
+- **Due Date**: "Due Date", "Due", "Deadline"
+
+**Example:**
+```json
+{
+  "statuses": ["In Progress", "Blocked"],
+  "include_overdue": true,
+  "limit": 25
+}
+```
+
+**Returns:**
+```json
+{
+  "count": 5,
+  "database_id": "abc123...",
+  "tasks": [
+    {
+      "id": "task-id-1",
+      "url": "https://notion.so/...",
+      "title": "Fix login bug",
+      "status": "In Progress",
+      "due_date": "2024-01-20",
+      "overdue": true
+    }
+  ]
+}
+```
+
+#### 34. get_related_pages
+
+Follow page relations and return connected pages.
+
+**Parameters:**
+- `page_id` (required) - Page ID to get relations for
+- `relation_property` (optional) - Specific relation property name (returns all if not specified)
+- `include_properties` (optional, boolean) - Include full page properties (default: false)
+
+**Example:**
+```json
+{
+  "page_id": "abc123...",
+  "include_properties": true
+}
+```
+
+**Returns:**
+```json
+{
+  "page_id": "abc123...",
+  "relations": {
+    "Related Projects": [
+      {
+        "id": "proj-1",
+        "title": "Project Alpha",
+        "url": "https://notion.so/...",
+        "properties": {...}
+      }
+    ],
+    "Blocked By": [
+      {
+        "id": "task-2",
+        "title": "Task 123"
+      }
+    ]
+  },
+  "count": 2
+}
+```
+
+**Use Cases:**
+- "Show all projects related to this task"
+- "Find pages blocking this issue"
+- "Get all linked resources"
+
 ## Notion Concepts
 
 ### Pages

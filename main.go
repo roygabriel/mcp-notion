@@ -59,6 +59,18 @@ func main() {
 	// Register Helper tools
 	registerHelperTools(s, notionClient)
 
+	// Register Batch tools
+	registerBatchTools(s, notionClient)
+
+	// Register Template tools
+	registerTemplateTools(s, notionClient)
+
+	// Register Export tools
+	registerExportTools(s, notionClient)
+
+	// Register Smart Query tools
+	registerSmartQueryTools(s, notionClient)
+
 	// Log startup
 	fmt.Fprintf(os.Stderr, "Notion MCP Server v1.0.0 starting...\n")
 	fmt.Fprintf(os.Stderr, "Connected to Notion as: %s\n", botUser.Name)
@@ -435,4 +447,173 @@ func registerHelperTools(s *server.MCPServer, client *notion.Client) {
 		),
 	)
 	s.AddTool(searchInDatabaseTool, tools.SearchInDatabaseHandler(client))
+}
+
+func registerBatchTools(s *server.MCPServer, client *notion.Client) {
+	// batch_create_pages - Create multiple pages
+	batchCreatePagesTool := mcp.NewTool("batch_create_pages",
+		mcp.WithDescription("Create multiple pages in a single batch operation with rate limiting"),
+		mcp.WithArray("pages",
+			mcp.Required(),
+			mcp.Description("Array of page objects to create, each with parent, properties, children, icon, cover"),
+		),
+		mcp.WithBoolean("continue_on_error",
+			mcp.Description("If true, continue creating remaining pages even if one fails (default: false)"),
+		),
+	)
+	s.AddTool(batchCreatePagesTool, tools.BatchCreatePagesHandler(client))
+
+	// batch_update_pages - Update multiple pages
+	batchUpdatePagesTool := mcp.NewTool("batch_update_pages",
+		mcp.WithDescription("Update multiple pages with the same property changes in a batch operation"),
+		mcp.WithArray("page_ids",
+			mcp.Required(),
+			mcp.Description("Array of page IDs to update"),
+		),
+		mcp.WithObject("properties",
+			mcp.Description("Properties to update on all pages"),
+		),
+		mcp.WithBoolean("archived",
+			mcp.Description("Archive or unarchive all pages"),
+		),
+		mcp.WithObject("icon",
+			mcp.Description("Update icon on all pages"),
+		),
+		mcp.WithObject("cover",
+			mcp.Description("Update cover on all pages"),
+		),
+		mcp.WithBoolean("continue_on_error",
+			mcp.Description("If true, continue updating remaining pages even if one fails (default: false)"),
+		),
+	)
+	s.AddTool(batchUpdatePagesTool, tools.BatchUpdatePagesHandler(client))
+
+	// batch_delete_pages - Delete multiple pages
+	batchDeletePagesTool := mcp.NewTool("batch_delete_pages",
+		mcp.WithDescription("Archive (delete) multiple pages in a batch operation"),
+		mcp.WithArray("page_ids",
+			mcp.Required(),
+			mcp.Description("Array of page IDs to archive/delete"),
+		),
+		mcp.WithBoolean("continue_on_error",
+			mcp.Description("If true, continue deleting remaining pages even if one fails (default: false)"),
+		),
+	)
+	s.AddTool(batchDeletePagesTool, tools.BatchDeletePagesHandler(client))
+}
+
+func registerTemplateTools(s *server.MCPServer, client *notion.Client) {
+	// create_page_from_template - Create page from template
+	createPageFromTemplateTool := mcp.NewTool("create_page_from_template",
+		mcp.WithDescription("Create a new page using a predefined template with variable substitution"),
+		mcp.WithString("template_name",
+			mcp.Required(),
+			mcp.Description("Template name: meeting_notes, daily_log, project_brief, sprint_planning, retrospective"),
+		),
+		mcp.WithString("parent_page_id",
+			mcp.Description("Parent page ID (uses workspace root if not provided)"),
+		),
+		mcp.WithString("parent_database_id",
+			mcp.Description("Parent database ID"),
+		),
+		mcp.WithString("title",
+			mcp.Required(),
+			mcp.Description("Page title (supports variables: {date}, {datetime}, {time}, and custom variables)"),
+		),
+		mcp.WithObject("variables",
+			mcp.Description("Custom variables for template substitution (e.g., {project_name: 'Alpha'})"),
+		),
+	)
+	s.AddTool(createPageFromTemplateTool, tools.CreatePageFromTemplateHandler(client))
+
+	// list_templates - List available templates
+	listTemplatesTool := mcp.NewTool("list_templates",
+		mcp.WithDescription("List all available page templates with their structure and supported variables"),
+	)
+	s.AddTool(listTemplatesTool, tools.ListTemplatesHandler(client))
+}
+
+func registerExportTools(s *server.MCPServer, client *notion.Client) {
+	// export_page_as_markdown - Export page as Markdown
+	exportPageAsMarkdownTool := mcp.NewTool("export_page_as_markdown",
+		mcp.WithDescription("Export a Notion page to clean Markdown format with optional frontmatter"),
+		mcp.WithString("page_id",
+			mcp.Required(),
+			mcp.Description("Page ID to export"),
+		),
+		mcp.WithBoolean("include_children",
+			mcp.Description("Recursively export child blocks (default: false)"),
+		),
+		mcp.WithBoolean("frontmatter",
+			mcp.Description("Include YAML frontmatter with metadata (default: false)"),
+		),
+	)
+	s.AddTool(exportPageAsMarkdownTool, tools.ExportPageAsMarkdownHandler(client))
+
+	// export_database_as_csv - Export database as CSV
+	exportDatabaseAsCSVTool := mcp.NewTool("export_database_as_csv",
+		mcp.WithDescription("Export database entries as CSV with all properties"),
+		mcp.WithString("database_id",
+			mcp.Required(),
+			mcp.Description("Database ID to export"),
+		),
+		mcp.WithObject("filter",
+			mcp.Description("Optional filter to limit entries exported"),
+		),
+		mcp.WithBoolean("include_archived",
+			mcp.Description("Include archived entries (default: false)"),
+		),
+	)
+	s.AddTool(exportDatabaseAsCSVTool, tools.ExportDatabaseAsCSVHandler(client))
+}
+
+func registerSmartQueryTools(s *server.MCPServer, client *notion.Client) {
+	// get_recently_edited - Get recently edited pages
+	getRecentlyEditedTool := mcp.NewTool("get_recently_edited",
+		mcp.WithDescription("Get pages edited within a specified time window"),
+		mcp.WithNumber("days",
+			mcp.Description("Number of days to look back (default: 7)"),
+		),
+		mcp.WithString("database_id",
+			mcp.Description("Optional: limit to specific database"),
+		),
+		mcp.WithNumber("limit",
+			mcp.Description("Maximum number of results (default: 50)"),
+		),
+	)
+	s.AddTool(getRecentlyEditedTool, tools.GetRecentlyEditedHandler(client))
+
+	// get_my_tasks - Smart task finder
+	getMyTasksTool := mcp.NewTool("get_my_tasks",
+		mcp.WithDescription("Smart task finder for the current user with flexible property detection"),
+		mcp.WithString("database_id",
+			mcp.Description("Specific tasks database (searches for task databases if not provided)"),
+		),
+		mcp.WithArray("statuses",
+			mcp.Description("Status values to include (default: ['In Progress', 'To Do', 'Not Started'])"),
+		),
+		mcp.WithBoolean("include_overdue",
+			mcp.Description("Include overdue tasks (default: true)"),
+		),
+		mcp.WithNumber("limit",
+			mcp.Description("Maximum number of tasks to return (default: 50)"),
+		),
+	)
+	s.AddTool(getMyTasksTool, tools.GetMyTasksHandler(client))
+
+	// get_related_pages - Follow page relations
+	getRelatedPagesTool := mcp.NewTool("get_related_pages",
+		mcp.WithDescription("Follow page relations and return connected pages"),
+		mcp.WithString("page_id",
+			mcp.Required(),
+			mcp.Description("Page ID to get relations for"),
+		),
+		mcp.WithString("relation_property",
+			mcp.Description("Specific relation property name (returns all relations if not specified)"),
+		),
+		mcp.WithBoolean("include_properties",
+			mcp.Description("Include full page properties for related pages (default: false)"),
+		),
+	)
+	s.AddTool(getRelatedPagesTool, tools.GetRelatedPagesHandler(client))
 }

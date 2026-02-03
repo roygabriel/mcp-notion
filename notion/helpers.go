@@ -443,3 +443,166 @@ func ExtractPlainText(richText []RichText) string {
 	}
 	return strings.Join(parts, "")
 }
+
+// RichTextToMarkdown converts rich text array to markdown with formatting
+func RichTextToMarkdown(richText []RichText) string {
+	var result strings.Builder
+
+	for _, rt := range richText {
+		text := ""
+		if rt.Text != nil {
+			text = rt.Text.Content
+		} else if rt.PlainText != "" {
+			text = rt.PlainText
+		}
+
+		if text == "" {
+			continue
+		}
+
+		// Apply formatting annotations
+		if rt.Annotations != nil {
+			if rt.Annotations.Code {
+				text = "`" + text + "`"
+			} else {
+				if rt.Annotations.Bold {
+					text = "**" + text + "**"
+				}
+				if rt.Annotations.Italic {
+					text = "*" + text + "*"
+				}
+				if rt.Annotations.Strikethrough {
+					text = "~~" + text + "~~"
+				}
+			}
+		}
+
+		// Apply link if present
+		if rt.Href != "" || (rt.Text != nil && rt.Text.Link != nil && rt.Text.Link.URL != "") {
+			url := rt.Href
+			if url == "" && rt.Text != nil && rt.Text.Link != nil {
+				url = rt.Text.Link.URL
+			}
+			text = "[" + text + "](" + url + ")"
+		}
+
+		result.WriteString(text)
+	}
+
+	return result.String()
+}
+
+// BlockToMarkdown converts a Notion block to markdown
+func BlockToMarkdown(block *Block, indent int) string {
+	indentStr := strings.Repeat("  ", indent)
+
+	switch block.Type {
+	case "paragraph":
+		if block.Paragraph != nil && len(block.Paragraph.RichText) > 0 {
+			return indentStr + RichTextToMarkdown(block.Paragraph.RichText) + "\n"
+		}
+		return indentStr + "\n"
+
+	case "heading_1":
+		if block.Heading1 != nil && len(block.Heading1.RichText) > 0 {
+			return indentStr + "# " + RichTextToMarkdown(block.Heading1.RichText) + "\n"
+		}
+
+	case "heading_2":
+		if block.Heading2 != nil && len(block.Heading2.RichText) > 0 {
+			return indentStr + "## " + RichTextToMarkdown(block.Heading2.RichText) + "\n"
+		}
+
+	case "heading_3":
+		if block.Heading3 != nil && len(block.Heading3.RichText) > 0 {
+			return indentStr + "### " + RichTextToMarkdown(block.Heading3.RichText) + "\n"
+		}
+
+	case "bulleted_list_item":
+		if block.BulletedListItem != nil && len(block.BulletedListItem.RichText) > 0 {
+			return indentStr + "- " + RichTextToMarkdown(block.BulletedListItem.RichText) + "\n"
+		}
+
+	case "numbered_list_item":
+		if block.NumberedListItem != nil && len(block.NumberedListItem.RichText) > 0 {
+			return indentStr + "1. " + RichTextToMarkdown(block.NumberedListItem.RichText) + "\n"
+		}
+
+	case "to_do":
+		if block.ToDo != nil && len(block.ToDo.RichText) > 0 {
+			checkbox := "[ ]"
+			if block.ToDo.Checked {
+				checkbox = "[x]"
+			}
+			return indentStr + "- " + checkbox + " " + RichTextToMarkdown(block.ToDo.RichText) + "\n"
+		}
+
+	case "toggle":
+		if block.Toggle != nil && len(block.Toggle.RichText) > 0 {
+			return indentStr + "- " + RichTextToMarkdown(block.Toggle.RichText) + "\n"
+		}
+
+	case "code":
+		if block.Code != nil && len(block.Code.RichText) > 0 {
+			language := block.Code.Language
+			if language == "" {
+				language = "text"
+			}
+			code := RichTextToMarkdown(block.Code.RichText)
+			return indentStr + "```" + language + "\n" + code + "\n" + indentStr + "```\n"
+		}
+
+	case "quote":
+		if block.Quote != nil && len(block.Quote.RichText) > 0 {
+			return indentStr + "> " + RichTextToMarkdown(block.Quote.RichText) + "\n"
+		}
+
+	case "callout":
+		if block.Callout != nil && len(block.Callout.RichText) > 0 {
+			icon := "💡"
+			if block.Callout.Icon != nil && block.Callout.Icon.Emoji != "" {
+				icon = block.Callout.Icon.Emoji
+			}
+			return indentStr + "> " + icon + " " + RichTextToMarkdown(block.Callout.RichText) + "\n"
+		}
+
+	case "divider":
+		return indentStr + "---\n"
+
+	case "table_of_contents":
+		return indentStr + "_Table of Contents_\n"
+
+	case "bookmark":
+		if block.Bookmark != nil {
+			caption := ""
+			if len(block.Bookmark.Caption) > 0 {
+				caption = RichTextToMarkdown(block.Bookmark.Caption)
+			}
+			if caption == "" {
+				caption = block.Bookmark.URL
+			}
+			return indentStr + "[" + caption + "](" + block.Bookmark.URL + ")\n"
+		}
+
+	case "child_page":
+		if block.ChildPage != nil {
+			return indentStr + "[📄 " + block.ChildPage.Title + "](notion page)\n"
+		}
+
+	case "child_database":
+		if block.ChildDatabase != nil {
+			return indentStr + "[🗄️ " + block.ChildDatabase.Title + "](notion database)\n"
+		}
+	}
+
+	return ""
+}
+
+// BlocksToMarkdown converts an array of blocks to markdown
+func BlocksToMarkdown(blocks []Block, indent int) string {
+	var result strings.Builder
+	for _, block := range blocks {
+		result.WriteString(BlockToMarkdown(&block, indent))
+	}
+	return result.String()
+}

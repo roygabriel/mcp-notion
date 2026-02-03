@@ -373,3 +373,27 @@ type CreateCommentRequest struct {
 	RichText     []RichText `json:"rich_text"`
 	DiscussionID string     `json:"discussion_id,omitempty"`
 }
+
+// BatchResult represents the result of a batch operation
+type BatchResult struct {
+	Created []map[string]string `json:"created,omitempty"`
+	Updated []map[string]string `json:"updated,omitempty"`
+	Deleted []string            `json:"deleted,omitempty"`
+	Failed  []BatchError        `json:"failed"`
+	Summary BatchSummary        `json:"summary"`
+}
+
+// BatchError represents a single failure in batch operation
+type BatchError struct {
+	Index  int    `json:"index,omitempty"`
+	ID     string `json:"id,omitempty"`
+	PageID string `json:"page_id,omitempty"`
+	Error  string `json:"error"`
+}
+
+// BatchSummary provides counts for batch operations
+type BatchSummary struct {
+	Total     int `json:"total"`
+	Succeeded int `json:"succeeded"`
+	Failed    int `json:"failed"`
+}
