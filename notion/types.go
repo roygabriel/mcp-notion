@@ -36,10 +36,11 @@ type Annotations struct {
 
 // Parent represents a parent object (page or database)
 type Parent struct {
-	Type       string `json:"type"`
-	PageID     string `json:"page_id,omitempty"`
-	DatabaseID string `json:"database_id,omitempty"`
-	Workspace  bool   `json:"workspace,omitempty"`
+	Type         string `json:"type"`
+	PageID       string `json:"page_id,omitempty"`
+	DatabaseID   string `json:"database_id,omitempty"`
+	DataSourceID string `json:"data_source_id,omitempty"`
+	Workspace    bool   `json:"workspace,omitempty"`
 }
 
 // Icon represents a page or database icon
@@ -343,6 +344,11 @@ type UpdatePageRequest struct {
 	Archived   *bool          `json:"archived,omitempty"`
 	Icon       *Icon          `json:"icon,omitempty"`
 	Cover      *Cover         `json:"cover,omitempty"`
+}
+
+// MovePageRequest represents a move page request
+type MovePageRequest struct {
+	Parent Parent `json:"parent"`
 }
 
 // CreateDatabaseRequest represents a create database request

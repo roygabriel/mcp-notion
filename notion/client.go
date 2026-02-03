@@ -351,6 +351,33 @@ func (c *Client) UpdatePage(ctx context.Context, pageID string, req *UpdatePageR
 	return &result, nil
 }
 
+// MovePage moves a page to a new parent location
+func (c *Client) MovePage(ctx context.Context, pageID string, req *MovePageRequest) (*Page, error) {
+	c.rateLimiter.Wait()
+
+	normalizedID, err := NormalizeID(pageID)
+	if err != nil {
+		return nil, fmt.Errorf("invalid page ID: %w", err)
+	}
+
+	var result Page
+	resp, err := c.client.R().
+		SetContext(ctx).
+		SetBody(req).
+		SetResult(&result).
+		Post("/pages/" + normalizedID + "/move")
+
+	if err != nil {
+		return nil, fmt.Errorf("move page request failed: %w", err)
+	}
+
+	if resp.IsError() {
+		return nil, c.handleError(resp)
+	}
+
+	return &result, nil
+}
+
 // GetBlock retrieves a block by ID
 func (c *Client) GetBlock(ctx context.Context, blockID string) (*Block, error) {
 	c.rateLimiter.Wait()

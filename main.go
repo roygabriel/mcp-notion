@@ -187,6 +187,20 @@ func registerPageTools(s *server.MCPServer, client *notion.Client) {
 	)
 	s.AddTool(updatePageTool, tools.UpdatePageHandler(client))
 
+	// move_page - Move page to new parent location
+	movePageTool := mcp.NewTool("move_page",
+		mcp.WithDescription("Move a page to a new parent location (another page, database, or workspace)"),
+		mcp.WithString("page_id",
+			mcp.Required(),
+			mcp.Description("Page ID to move (with or without dashes)"),
+		),
+		mcp.WithObject("parent",
+			mcp.Required(),
+			mcp.Description("New parent location with 'type' and corresponding ID field"),
+		),
+	)
+	s.AddTool(movePageTool, tools.MovePageHandler(client))
+
 	// delete_page - Archive/delete a page
 	deletePageTool := mcp.NewTool("delete_page",
 		mcp.WithDescription("Archive (delete) a page by setting its archived property to true"),

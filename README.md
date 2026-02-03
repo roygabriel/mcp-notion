@@ -279,7 +279,62 @@ Update page properties, icon, cover, or archive status.
 - `icon` (optional) - Update page icon
 - `cover` (optional) - Update page cover
 
-#### 8. delete_page
+#### 8. move_page
+
+Move a page to a new parent location.
+
+**Parameters:**
+- `page_id` (required) - Page ID to move
+- `parent` (required) - New parent location object with:
+  - `type` - Must be "page_id" or "data_source_id"
+  - `page_id` - Parent page ID (when type is "page_id")
+  - `data_source_id` - Database data source ID (when type is "data_source_id")
+
+**Important Notes:**
+- The page must be a regular Notion page, not a database
+- The bot must have edit access to both the page and the new parent
+- When moving to a database, use `data_source_id` (not `database_id`)
+- Get data source IDs using the `get_database` tool
+
+**Example - Move under another page:**
+```json
+{
+  "page_id": "abc123...",
+  "parent": {
+    "type": "page_id",
+    "page_id": "def456..."
+  }
+}
+```
+
+**Example - Move into a database:**
+```json
+{
+  "page_id": "abc123...",
+  "parent": {
+    "type": "data_source_id",
+    "data_source_id": "1c7b35e6-e67f-8096-bf3f-000ba938459e"
+  }
+}
+```
+
+**Returns:**
+```json
+{
+  "success": true,
+  "id": "abc123...",
+  "url": "https://notion.so/...",
+  "parent": {
+    "type": "page_id",
+    "page_id": "def456..."
+  },
+  "message": "Page moved successfully",
+  "archived": false,
+  "last_edited_time": "2024-01-20T14:22:00Z"
+}
+```
+
+#### 9. delete_page
 
 Archive (delete) a page.
 

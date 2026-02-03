@@ -292,3 +292,76 @@ func DeletePageHandler(client *notion.Client) func(context.Context, mcp.CallTool
 		return mcp.NewToolResultText(string(jsonData)), nil
 	}
 }
+
+// MovePageHandler creates a handler for moving pages to new parent locations
+func MovePageHandler(client *notion.Client) func(context.Context, mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+	return func(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+		args := req.GetArguments()
+
+		// Extract page ID
+		pageID, ok := args["page_id"].(string)
+		if !ok || pageID == "" {
+			return mcp.NewToolResultError("page_id is required"), nil
+		}
+
+		// Extract parent
+		parentData, ok := args["parent"].(map[string]any)
+		if !ok || len(parentData) == 0 {
+			return mcp.NewToolResultError("parent is required"), nil
+		}
+
+		// Build parent object
+		parent := notion.Parent{}
+		if parentType, ok := parentData["type"].(string); ok {
+			parent.Type = parentType
+
+			switch parentType {
+			case "page_id":
+				if pageID, ok := parentData["page_id"].(string); ok && pageID != "" {
+					parent.PageID = pageID
+				} else {
+					return mcp.NewToolResultError("page_id is required in parent when type is 'page_id'"), nil
+				}
+			case "data_source_id":
+				if dataSourceID, ok := parentData["data_source_id"].(string); ok && dataSourceID != "" {
+					parent.DataSourceID = dataSourceID
+				} else {
+					return mcp.NewToolResultError("data_source_id is required in parent when type is 'data_source_id'"), nil
+				}
+			default:
+				return mcp.NewToolResultError(fmt.Sprintf("invalid parent type '%s', must be 'page_id' or 'data_source_id'", parentType)), nil
+			}
+		} else {
+			return mcp.NewToolResultError("parent.type is required (must be 'page_id' or 'data_source_id')"), nil
+		}
+
+		// Create move request
+		moveReq := &notion.MovePageRequest{
+			Parent: parent,
+		}
+
+		// Move page
+		page, err := client.MovePage(ctx, pageID, moveReq)
+		if err != nil {
+			return mcp.NewToolResultError(fmt.Sprintf("failed to move page: %v", err)), nil
+		}
+
+		// Format response
+		response := map[string]any{
+			"success":          true,
+			"id":               page.ID,
+			"url":              page.URL,
+			"parent":           page.Parent,
+			"message":          "Page moved successfully",
+			"archived":         page.Archived,
+			"last_edited_time": page.LastEditedTime,
+		}
+
+		jsonData, err := json.MarshalIndent(response, "", "  ")
+		if err != nil {
+			return mcp.NewToolResultError(fmt.Sprintf("failed to format response: %v", err)), nil
+		}
+
+		return mcp.NewToolResultText(string(jsonData)), nil
+	}
+}
