@@ -96,7 +96,7 @@ func main() {
 	}
 }
 
-func registerSearchTools(s *server.MCPServer, client *notion.Client) {
+func registerSearchTools(s *server.MCPServer, client notion.NotionClient) {
 	// search - Search across all pages and databases
 	searchTool := mcp.NewTool("search",
 		mcp.WithDescription("Search across all pages and databases with optional filters and sorting"),
@@ -132,7 +132,7 @@ func registerSearchTools(s *server.MCPServer, client *notion.Client) {
 	s.AddTool(getDatabaseTool, tools.GetDatabaseHandler(client))
 }
 
-func registerPageTools(s *server.MCPServer, client *notion.Client) {
+func registerPageTools(s *server.MCPServer, client notion.NotionClient) {
 	// get_page - Get page metadata
 	getPageTool := mcp.NewTool("get_page",
 		mcp.WithDescription("Get page metadata including properties, parent, and timestamps"),
@@ -226,7 +226,7 @@ func registerPageTools(s *server.MCPServer, client *notion.Client) {
 	s.AddTool(deletePageTool, tools.DeletePageHandler(client))
 }
 
-func registerDatabaseTools(s *server.MCPServer, client *notion.Client) {
+func registerDatabaseTools(s *server.MCPServer, client notion.NotionClient) {
 	// query_database - Query database with filters and sorts
 	queryDatabaseTool := mcp.NewTool("query_database",
 		mcp.WithDescription("Query a database with optional filters, sorts, and pagination"),
@@ -296,7 +296,7 @@ func registerDatabaseTools(s *server.MCPServer, client *notion.Client) {
 	s.AddTool(updateDatabaseTool, tools.UpdateDatabaseHandler(client))
 }
 
-func registerBlockTools(s *server.MCPServer, client *notion.Client) {
+func registerBlockTools(s *server.MCPServer, client notion.NotionClient) {
 	// get_block - Get a specific block
 	getBlockTool := mcp.NewTool("get_block",
 		mcp.WithDescription("Get details of a specific block by ID"),
@@ -358,7 +358,7 @@ func registerBlockTools(s *server.MCPServer, client *notion.Client) {
 	s.AddTool(deleteBlockTool, tools.DeleteBlockHandler(client))
 }
 
-func registerCommentTools(s *server.MCPServer, client *notion.Client) {
+func registerCommentTools(s *server.MCPServer, client notion.NotionClient) {
 	// get_comments - Get comments on a page or block
 	getCommentsTool := mcp.NewTool("get_comments",
 		mcp.WithDescription("Get comments on a page or block"),
@@ -395,7 +395,7 @@ func registerCommentTools(s *server.MCPServer, client *notion.Client) {
 	s.AddTool(createCommentTool, tools.CreateCommentHandler(client))
 }
 
-func registerUserTools(s *server.MCPServer, client *notion.Client) {
+func registerUserTools(s *server.MCPServer, client notion.NotionClient) {
 	// list_users - List all users
 	listUsersTool := mcp.NewTool("list_users",
 		mcp.WithDescription("List all users in the workspace"),
@@ -425,7 +425,7 @@ func registerUserTools(s *server.MCPServer, client *notion.Client) {
 	s.AddTool(getBotUserTool, tools.GetBotUserHandler(client))
 }
 
-func registerHelperTools(s *server.MCPServer, client *notion.Client) {
+func registerHelperTools(s *server.MCPServer, client notion.NotionClient) {
 	// create_simple_page - Simplified page creation
 	createSimplePageTool := mcp.NewTool("create_simple_page",
 		mcp.WithDescription("Create a simple page with markdown-like content (easier than create_page)"),
@@ -477,7 +477,7 @@ func registerHelperTools(s *server.MCPServer, client *notion.Client) {
 	s.AddTool(searchInDatabaseTool, tools.SearchInDatabaseHandler(client))
 }
 
-func registerBatchTools(s *server.MCPServer, client *notion.Client) {
+func registerBatchTools(s *server.MCPServer, client notion.NotionClient) {
 	// batch_create_pages - Create multiple pages
 	batchCreatePagesTool := mcp.NewTool("batch_create_pages",
 		mcp.WithDescription("Create multiple pages in a single batch operation with rate limiting"),
@@ -530,7 +530,7 @@ func registerBatchTools(s *server.MCPServer, client *notion.Client) {
 	s.AddTool(batchDeletePagesTool, tools.BatchDeletePagesHandler(client))
 }
 
-func registerTemplateTools(s *server.MCPServer, client *notion.Client) {
+func registerTemplateTools(s *server.MCPServer, client notion.NotionClient) {
 	// create_page_from_template - Create page from template
 	createPageFromTemplateTool := mcp.NewTool("create_page_from_template",
 		mcp.WithDescription("Create a new page using a predefined template with variable substitution"),
@@ -561,7 +561,7 @@ func registerTemplateTools(s *server.MCPServer, client *notion.Client) {
 	s.AddTool(listTemplatesTool, tools.ListTemplatesHandler(client))
 }
 
-func registerExportTools(s *server.MCPServer, client *notion.Client) {
+func registerExportTools(s *server.MCPServer, client notion.NotionClient) {
 	// export_page_as_markdown - Export page as Markdown
 	exportPageAsMarkdownTool := mcp.NewTool("export_page_as_markdown",
 		mcp.WithDescription("Export a Notion page to clean Markdown format with optional frontmatter"),
@@ -595,7 +595,7 @@ func registerExportTools(s *server.MCPServer, client *notion.Client) {
 	s.AddTool(exportDatabaseAsCSVTool, tools.ExportDatabaseAsCSVHandler(client))
 }
 
-func registerSmartQueryTools(s *server.MCPServer, client *notion.Client) {
+func registerSmartQueryTools(s *server.MCPServer, client notion.NotionClient) {
 	// get_recently_edited - Get recently edited pages
 	getRecentlyEditedTool := mcp.NewTool("get_recently_edited",
 		mcp.WithDescription("Get pages edited within a specified time window"),

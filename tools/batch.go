@@ -11,7 +11,7 @@ import (
 )
 
 // BatchCreatePagesHandler creates a handler for batch page creation
-func BatchCreatePagesHandler(client *notion.Client) func(context.Context, mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+func BatchCreatePagesHandler(client notion.NotionClient) func(context.Context, mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	return func(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 		args := req.GetArguments()
 
@@ -107,7 +107,7 @@ func BatchCreatePagesHandler(client *notion.Client) func(context.Context, mcp.Ca
 }
 
 // BatchUpdatePagesHandler creates a handler for batch page updates
-func BatchUpdatePagesHandler(client *notion.Client) func(context.Context, mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+func BatchUpdatePagesHandler(client notion.NotionClient) func(context.Context, mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	return func(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 		args := req.GetArguments()
 
@@ -218,7 +218,7 @@ func BatchUpdatePagesHandler(client *notion.Client) func(context.Context, mcp.Ca
 }
 
 // BatchDeletePagesHandler creates a handler for batch page deletion (archiving)
-func BatchDeletePagesHandler(client *notion.Client) func(context.Context, mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+func BatchDeletePagesHandler(client notion.NotionClient) func(context.Context, mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	return func(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 		args := req.GetArguments()
 

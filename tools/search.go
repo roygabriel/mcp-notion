@@ -10,7 +10,7 @@ import (
 )
 
 // SearchHandler creates a handler for searching across pages and databases
-func SearchHandler(client *notion.Client) func(context.Context, mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+func SearchHandler(client notion.NotionClient) func(context.Context, mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	return func(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 		args := req.GetArguments()
 
@@ -63,7 +63,7 @@ func SearchHandler(client *notion.Client) func(context.Context, mcp.CallToolRequ
 }
 
 // ListDatabasesHandler creates a handler for listing all databases
-func ListDatabasesHandler(client *notion.Client) func(context.Context, mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+func ListDatabasesHandler(client notion.NotionClient) func(context.Context, mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	return func(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 		// Search with database filter
 		searchReq := &notion.SearchRequest{
@@ -118,7 +118,7 @@ func ListDatabasesHandler(client *notion.Client) func(context.Context, mcp.CallT
 }
 
 // GetDatabaseHandler creates a handler for getting database details
-func GetDatabaseHandler(client *notion.Client) func(context.Context, mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+func GetDatabaseHandler(client notion.NotionClient) func(context.Context, mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	return func(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 		args := req.GetArguments()
 

@@ -11,7 +11,7 @@ import (
 )
 
 // CreateSimplePageHandler creates a handler for creating a simple page with markdown-like content
-func CreateSimplePageHandler(client *notion.Client) func(context.Context, mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+func CreateSimplePageHandler(client notion.NotionClient) func(context.Context, mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	return func(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 		args := req.GetArguments()
 
@@ -88,7 +88,7 @@ func CreateSimplePageHandler(client *notion.Client) func(context.Context, mcp.Ca
 }
 
 // AppendToPageHandler creates a handler for appending content to an existing page
-func AppendToPageHandler(client *notion.Client) func(context.Context, mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+func AppendToPageHandler(client notion.NotionClient) func(context.Context, mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	return func(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 		args := req.GetArguments()
 
@@ -138,7 +138,7 @@ func AppendToPageHandler(client *notion.Client) func(context.Context, mcp.CallTo
 }
 
 // SearchInDatabaseHandler creates a handler for searching within a specific database
-func SearchInDatabaseHandler(client *notion.Client) func(context.Context, mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+func SearchInDatabaseHandler(client notion.NotionClient) func(context.Context, mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	return func(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 		args := req.GetArguments()
 

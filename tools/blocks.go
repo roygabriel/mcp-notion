@@ -10,7 +10,7 @@ import (
 )
 
 // GetBlockHandler creates a handler for getting a specific block
-func GetBlockHandler(client *notion.Client) func(context.Context, mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+func GetBlockHandler(client notion.NotionClient) func(context.Context, mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	return func(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 		args := req.GetArguments()
 
@@ -37,7 +37,7 @@ func GetBlockHandler(client *notion.Client) func(context.Context, mcp.CallToolRe
 }
 
 // GetBlockChildrenHandler creates a handler for getting children of a block
-func GetBlockChildrenHandler(client *notion.Client) func(context.Context, mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+func GetBlockChildrenHandler(client notion.NotionClient) func(context.Context, mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	return func(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 		args := req.GetArguments()
 
@@ -85,7 +85,7 @@ func GetBlockChildrenHandler(client *notion.Client) func(context.Context, mcp.Ca
 }
 
 // AppendBlocksHandler creates a handler for appending blocks to a parent
-func AppendBlocksHandler(client *notion.Client) func(context.Context, mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+func AppendBlocksHandler(client notion.NotionClient) func(context.Context, mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	return func(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 		args := req.GetArguments()
 
@@ -145,7 +145,7 @@ func AppendBlocksHandler(client *notion.Client) func(context.Context, mcp.CallTo
 }
 
 // UpdateBlockHandler creates a handler for updating a block
-func UpdateBlockHandler(client *notion.Client) func(context.Context, mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+func UpdateBlockHandler(client notion.NotionClient) func(context.Context, mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	return func(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 		args := req.GetArguments()
 
@@ -202,7 +202,7 @@ func UpdateBlockHandler(client *notion.Client) func(context.Context, mcp.CallToo
 }
 
 // DeleteBlockHandler creates a handler for deleting a block
-func DeleteBlockHandler(client *notion.Client) func(context.Context, mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+func DeleteBlockHandler(client notion.NotionClient) func(context.Context, mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	return func(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 		args := req.GetArguments()
 

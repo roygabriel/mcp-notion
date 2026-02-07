@@ -10,7 +10,7 @@ import (
 )
 
 // GetPageHandler creates a handler for getting page metadata
-func GetPageHandler(client *notion.Client) func(context.Context, mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+func GetPageHandler(client notion.NotionClient) func(context.Context, mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	return func(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 		args := req.GetArguments()
 
@@ -54,7 +54,7 @@ func GetPageHandler(client *notion.Client) func(context.Context, mcp.CallToolReq
 }
 
 // GetPageContentHandler creates a handler for getting page content (blocks)
-func GetPageContentHandler(client *notion.Client) func(context.Context, mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+func GetPageContentHandler(client notion.NotionClient) func(context.Context, mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	return func(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 		args := req.GetArguments()
 
@@ -96,7 +96,7 @@ func GetPageContentHandler(client *notion.Client) func(context.Context, mcp.Call
 }
 
 // CreatePageHandler creates a handler for creating a new page
-func CreatePageHandler(client *notion.Client) func(context.Context, mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+func CreatePageHandler(client notion.NotionClient) func(context.Context, mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	return func(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 		args := req.GetArguments()
 
@@ -191,7 +191,7 @@ func CreatePageHandler(client *notion.Client) func(context.Context, mcp.CallTool
 }
 
 // UpdatePageHandler creates a handler for updating a page
-func UpdatePageHandler(client *notion.Client) func(context.Context, mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+func UpdatePageHandler(client notion.NotionClient) func(context.Context, mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	return func(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 		args := req.GetArguments()
 
@@ -256,7 +256,7 @@ func UpdatePageHandler(client *notion.Client) func(context.Context, mcp.CallTool
 }
 
 // DeletePageHandler creates a handler for deleting (archiving) a page
-func DeletePageHandler(client *notion.Client) func(context.Context, mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+func DeletePageHandler(client notion.NotionClient) func(context.Context, mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	return func(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 		args := req.GetArguments()
 
@@ -294,7 +294,7 @@ func DeletePageHandler(client *notion.Client) func(context.Context, mcp.CallTool
 }
 
 // MovePageHandler creates a handler for moving pages to new parent locations
-func MovePageHandler(client *notion.Client) func(context.Context, mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+func MovePageHandler(client notion.NotionClient) func(context.Context, mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	return func(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 		args := req.GetArguments()
 

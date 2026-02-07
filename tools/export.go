@@ -14,7 +14,7 @@ import (
 )
 
 // ExportPageAsMarkdownHandler creates a handler for exporting pages as markdown
-func ExportPageAsMarkdownHandler(client *notion.Client) func(context.Context, mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+func ExportPageAsMarkdownHandler(client notion.NotionClient) func(context.Context, mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	return func(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 		args := req.GetArguments()
 
@@ -113,7 +113,7 @@ func ExportPageAsMarkdownHandler(client *notion.Client) func(context.Context, mc
 }
 
 // ExportDatabaseAsCSVHandler creates a handler for exporting databases as CSV
-func ExportDatabaseAsCSVHandler(client *notion.Client) func(context.Context, mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+func ExportDatabaseAsCSVHandler(client notion.NotionClient) func(context.Context, mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	return func(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 		args := req.GetArguments()
 
@@ -223,7 +223,7 @@ func ExportDatabaseAsCSVHandler(client *notion.Client) func(context.Context, mcp
 }
 
 // exportBlockChildren recursively exports child blocks
-func exportBlockChildren(ctx context.Context, client *notion.Client, blockID string, indent int) (string, error) {
+func exportBlockChildren(ctx context.Context, client notion.NotionClient, blockID string, indent int) (string, error) {
 	blocks, err := client.GetBlockChildren(ctx, blockID, 100, "")
 	if err != nil {
 		return "", err
