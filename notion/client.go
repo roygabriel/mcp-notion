@@ -14,11 +14,10 @@ import (
 )
 
 const (
-	baseURL         = "https://api.notion.com/v1"
-	maxRetries      = 5
-	initialBackoff  = 1 * time.Second
-	maxBackoff      = 32 * time.Second
-	maxResultsLimit = 1000
+	baseURL        = "https://api.notion.com/v1"
+	maxRetries     = 5
+	initialBackoff = 1 * time.Second
+	maxBackoff     = 32 * time.Second
 )
 
 // Client wraps the Resty HTTP client with Notion-specific functionality
@@ -112,7 +111,7 @@ func NewClient(cfg *config.Config) *Client {
 func NormalizeID(id string) (string, error) {
 	// Remove any existing dashes
 	cleaned := strings.ReplaceAll(id, "-", "")
-	
+
 	// Validate length
 	if len(cleaned) != 32 {
 		return "", fmt.Errorf("invalid UUID length: expected 32 characters, got %d", len(cleaned))

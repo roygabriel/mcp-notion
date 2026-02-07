@@ -138,7 +138,7 @@ func retrospectiveTemplate() []notion.Block {
 }
 
 // CreatePageFromTemplateHandler creates a handler for creating pages from templates
-func CreatePageFromTemplateHandler(client *notion.Client) func(context.Context, mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+func CreatePageFromTemplateHandler(client notion.NotionClient) func(context.Context, mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	return func(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 		args := req.GetArguments()
 
@@ -241,7 +241,7 @@ func CreatePageFromTemplateHandler(client *notion.Client) func(context.Context, 
 }
 
 // ListTemplatesHandler creates a handler for listing available templates
-func ListTemplatesHandler(client *notion.Client) func(context.Context, mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+func ListTemplatesHandler(client notion.NotionClient) func(context.Context, mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	return func(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 		templates := GetTemplates()
 
@@ -249,7 +249,7 @@ func ListTemplatesHandler(client *notion.Client) func(context.Context, mcp.CallT
 		templateList := make([]map[string]any, 0, len(templates))
 		for name, template := range templates {
 			blocks := template.Blocks()
-			
+
 			// Extract structure preview
 			structure := make([]string, 0, len(blocks))
 			for _, block := range blocks {

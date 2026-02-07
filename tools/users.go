@@ -10,7 +10,7 @@ import (
 )
 
 // ListUsersHandler creates a handler for listing all users
-func ListUsersHandler(client *notion.Client) func(context.Context, mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+func ListUsersHandler(client notion.NotionClient) func(context.Context, mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	return func(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 		args := req.GetArguments()
 
@@ -52,7 +52,7 @@ func ListUsersHandler(client *notion.Client) func(context.Context, mcp.CallToolR
 }
 
 // GetUserHandler creates a handler for getting a specific user
-func GetUserHandler(client *notion.Client) func(context.Context, mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+func GetUserHandler(client notion.NotionClient) func(context.Context, mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	return func(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 		args := req.GetArguments()
 
@@ -79,7 +79,7 @@ func GetUserHandler(client *notion.Client) func(context.Context, mcp.CallToolReq
 }
 
 // GetBotUserHandler creates a handler for getting the current bot user
-func GetBotUserHandler(client *notion.Client) func(context.Context, mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+func GetBotUserHandler(client notion.NotionClient) func(context.Context, mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	return func(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 		// Get bot user
 		user, err := client.GetBotUser(ctx)

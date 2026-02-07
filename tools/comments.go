@@ -10,7 +10,7 @@ import (
 )
 
 // GetCommentsHandler creates a handler for getting comments
-func GetCommentsHandler(client *notion.Client) func(context.Context, mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+func GetCommentsHandler(client notion.NotionClient) func(context.Context, mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	return func(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 		args := req.GetArguments()
 
@@ -60,7 +60,7 @@ func GetCommentsHandler(client *notion.Client) func(context.Context, mcp.CallToo
 }
 
 // CreateCommentHandler creates a handler for creating a comment
-func CreateCommentHandler(client *notion.Client) func(context.Context, mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+func CreateCommentHandler(client notion.NotionClient) func(context.Context, mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	return func(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 		args := req.GetArguments()
 

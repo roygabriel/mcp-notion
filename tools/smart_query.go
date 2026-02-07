@@ -12,7 +12,7 @@ import (
 )
 
 // GetRecentlyEditedHandler creates a handler for getting recently edited pages
-func GetRecentlyEditedHandler(client *notion.Client) func(context.Context, mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+func GetRecentlyEditedHandler(client notion.NotionClient) func(context.Context, mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	return func(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 		args := req.GetArguments()
 
@@ -89,9 +89,9 @@ func GetRecentlyEditedHandler(client *notion.Client) func(context.Context, mcp.C
 
 		// Format response
 		response := map[string]any{
-			"count":        len(filtered),
-			"cutoff_date":  cutoffTime.Format("2006-01-02"),
-			"pages":        filtered,
+			"count":       len(filtered),
+			"cutoff_date": cutoffTime.Format("2006-01-02"),
+			"pages":       filtered,
 		}
 
 		jsonData, err := json.MarshalIndent(response, "", "  ")
@@ -104,7 +104,7 @@ func GetRecentlyEditedHandler(client *notion.Client) func(context.Context, mcp.C
 }
 
 // GetMyTasksHandler creates a handler for getting tasks assigned to current user
-func GetMyTasksHandler(client *notion.Client) func(context.Context, mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+func GetMyTasksHandler(client notion.NotionClient) func(context.Context, mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	return func(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 		args := req.GetArguments()
 
@@ -319,7 +319,7 @@ func GetMyTasksHandler(client *notion.Client) func(context.Context, mcp.CallTool
 }
 
 // GetRelatedPagesHandler creates a handler for getting related pages
-func GetRelatedPagesHandler(client *notion.Client) func(context.Context, mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+func GetRelatedPagesHandler(client notion.NotionClient) func(context.Context, mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	return func(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 		args := req.GetArguments()
 

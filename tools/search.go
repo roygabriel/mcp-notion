@@ -10,7 +10,7 @@ import (
 )
 
 // SearchHandler creates a handler for searching across pages and databases
-func SearchHandler(client *notion.Client) func(context.Context, mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+func SearchHandler(client notion.NotionClient) func(context.Context, mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	return func(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 		args := req.GetArguments()
 
@@ -45,9 +45,9 @@ func SearchHandler(client *notion.Client) func(context.Context, mcp.CallToolRequ
 
 		// Format response
 		response := map[string]any{
-			"count":      len(result.Results),
-			"results":    result.Results,
-			"has_more":   result.HasMore,
+			"count":    len(result.Results),
+			"results":  result.Results,
+			"has_more": result.HasMore,
 		}
 		if result.NextCursor != "" {
 			response["next_cursor"] = result.NextCursor
@@ -63,7 +63,7 @@ func SearchHandler(client *notion.Client) func(context.Context, mcp.CallToolRequ
 }
 
 // ListDatabasesHandler creates a handler for listing all databases
-func ListDatabasesHandler(client *notion.Client) func(context.Context, mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+func ListDatabasesHandler(client notion.NotionClient) func(context.Context, mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	return func(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 		// Search with database filter
 		searchReq := &notion.SearchRequest{
@@ -118,7 +118,7 @@ func ListDatabasesHandler(client *notion.Client) func(context.Context, mcp.CallT
 }
 
 // GetDatabaseHandler creates a handler for getting database details
-func GetDatabaseHandler(client *notion.Client) func(context.Context, mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+func GetDatabaseHandler(client notion.NotionClient) func(context.Context, mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	return func(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 		args := req.GetArguments()
 
@@ -136,13 +136,13 @@ func GetDatabaseHandler(client *notion.Client) func(context.Context, mcp.CallToo
 
 		// Format response with database details
 		response := map[string]any{
-			"id":          database.ID,
-			"title":       notion.ExtractPlainText(database.Title),
-			"url":         database.URL,
-			"properties":  database.Properties,
-			"is_inline":   database.IsInline,
-			"archived":    database.Archived,
-			"created_time": database.CreatedTime,
+			"id":               database.ID,
+			"title":            notion.ExtractPlainText(database.Title),
+			"url":              database.URL,
+			"properties":       database.Properties,
+			"is_inline":        database.IsInline,
+			"archived":         database.Archived,
+			"created_time":     database.CreatedTime,
 			"last_edited_time": database.LastEditedTime,
 		}
 

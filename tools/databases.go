@@ -10,7 +10,7 @@ import (
 )
 
 // QueryDatabaseHandler creates a handler for querying a database
-func QueryDatabaseHandler(client *notion.Client) func(context.Context, mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+func QueryDatabaseHandler(client notion.NotionClient) func(context.Context, mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	return func(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 		args := req.GetArguments()
 
@@ -75,7 +75,7 @@ func QueryDatabaseHandler(client *notion.Client) func(context.Context, mcp.CallT
 }
 
 // CreateDatabaseHandler creates a handler for creating a new database
-func CreateDatabaseHandler(client *notion.Client) func(context.Context, mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+func CreateDatabaseHandler(client notion.NotionClient) func(context.Context, mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	return func(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 		args := req.GetArguments()
 
@@ -174,7 +174,7 @@ func CreateDatabaseHandler(client *notion.Client) func(context.Context, mcp.Call
 }
 
 // UpdateDatabaseHandler creates a handler for updating a database
-func UpdateDatabaseHandler(client *notion.Client) func(context.Context, mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+func UpdateDatabaseHandler(client notion.NotionClient) func(context.Context, mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	return func(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 		args := req.GetArguments()
 
