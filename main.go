@@ -2,8 +2,8 @@ package main
 
 import (
 	"context"
-	"fmt"
 	"log"
+	"log/slog"
 	"os"
 
 	"github.com/mark3labs/mcp-go/mcp"
@@ -13,7 +13,16 @@ import (
 	"github.com/rgabriel/mcp-notion/tools"
 )
 
+// Set via -ldflags at build time.
+var version = "dev"
+
 func main() {
+	// Configure structured logging to stderr (MCP uses stdio transport).
+	logger := slog.New(slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{
+		Level: slog.LevelInfo,
+	}))
+	slog.SetDefault(logger)
+
 	// Load configuration
 	cfg, err := config.Load()
 	if err != nil {
@@ -33,7 +42,7 @@ func main() {
 	// Create MCP server
 	s := server.NewMCPServer(
 		"Notion MCP Server",
-		"1.0.0",
+		version,
 		server.WithToolCapabilities(false),
 		server.WithRecovery(),
 	)
@@ -72,9 +81,14 @@ func main() {
 	registerSmartQueryTools(s, notionClient)
 
 	// Log startup
-	fmt.Fprintf(os.Stderr, "Notion MCP Server v1.0.0 starting...\n")
-	fmt.Fprintf(os.Stderr, "Connected to Notion as: %s\n", botUser.Name)
-	fmt.Fprintf(os.Stderr, "Bot ID: %s\n", botUser.ID)
+	slog.Info("server starting",
+		"name", "Notion MCP Server",
+		"version", version,
+		"bot_name", botUser.Name,
+		"bot_id", botUser.ID,
+		"api_version", cfg.NotionAPIVersion,
+		"timeout_seconds", cfg.NotionTimeout,
+	)
 
 	// Start the stdio server
 	if err := server.ServeStdio(s); err != nil {
