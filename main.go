@@ -100,6 +100,7 @@ func registerSearchTools(s *server.MCPServer, client notion.NotionClient) {
 	// search - Search across all pages and databases
 	searchTool := mcp.NewTool("search",
 		mcp.WithDescription("Search across all pages and databases with optional filters and sorting"),
+		mcp.WithReadOnlyHintAnnotation(true),
 		mcp.WithString("query",
 			mcp.Description("Search term to query for"),
 		),
@@ -111,6 +112,7 @@ func registerSearchTools(s *server.MCPServer, client notion.NotionClient) {
 		),
 		mcp.WithNumber("page_size",
 			mcp.Description("Number of results per page (default: 100, max: 100)"),
+			mcp.Min(1), mcp.Max(100), mcp.DefaultNumber(100),
 		),
 	)
 	s.AddTool(searchTool, tools.SearchHandler(client))
@@ -118,14 +120,17 @@ func registerSearchTools(s *server.MCPServer, client notion.NotionClient) {
 	// list_databases - List all accessible databases
 	listDatabasesTool := mcp.NewTool("list_databases",
 		mcp.WithDescription("List all accessible databases with their IDs, titles, and metadata"),
+		mcp.WithReadOnlyHintAnnotation(true),
 	)
 	s.AddTool(listDatabasesTool, tools.ListDatabasesHandler(client))
 
 	// get_database - Get database details including schema
 	getDatabaseTool := mcp.NewTool("get_database",
 		mcp.WithDescription("Get detailed information about a database including its properties schema"),
+		mcp.WithReadOnlyHintAnnotation(true),
 		mcp.WithString("database_id",
 			mcp.Required(),
+			mcp.MinLength(1),
 			mcp.Description("Database ID (with or without dashes)"),
 		),
 	)
@@ -136,8 +141,10 @@ func registerPageTools(s *server.MCPServer, client notion.NotionClient) {
 	// get_page - Get page metadata
 	getPageTool := mcp.NewTool("get_page",
 		mcp.WithDescription("Get page metadata including properties, parent, and timestamps"),
+		mcp.WithReadOnlyHintAnnotation(true),
 		mcp.WithString("page_id",
 			mcp.Required(),
+			mcp.MinLength(1),
 			mcp.Description("Page ID (with or without dashes)"),
 		),
 	)
@@ -146,12 +153,15 @@ func registerPageTools(s *server.MCPServer, client notion.NotionClient) {
 	// get_page_content - Get page content (blocks)
 	getPageContentTool := mcp.NewTool("get_page_content",
 		mcp.WithDescription("Get the content of a page as an array of blocks"),
+		mcp.WithReadOnlyHintAnnotation(true),
 		mcp.WithString("page_id",
 			mcp.Required(),
+			mcp.MinLength(1),
 			mcp.Description("Page ID (with or without dashes)"),
 		),
 		mcp.WithNumber("page_size",
 			mcp.Description("Number of blocks per page (default: 100, max: 100)"),
+			mcp.Min(1), mcp.Max(100), mcp.DefaultNumber(100),
 		),
 	)
 	s.AddTool(getPageContentTool, tools.GetPageContentHandler(client))
@@ -182,8 +192,10 @@ func registerPageTools(s *server.MCPServer, client notion.NotionClient) {
 	// update_page - Update page properties
 	updatePageTool := mcp.NewTool("update_page",
 		mcp.WithDescription("Update page properties, icon, cover, or archive status"),
+		mcp.WithIdempotentHintAnnotation(true),
 		mcp.WithString("page_id",
 			mcp.Required(),
+			mcp.MinLength(1),
 			mcp.Description("Page ID to update"),
 		),
 		mcp.WithObject("properties",
@@ -206,6 +218,7 @@ func registerPageTools(s *server.MCPServer, client notion.NotionClient) {
 		mcp.WithDescription("Move a page to a new parent location (another page, database, or workspace)"),
 		mcp.WithString("page_id",
 			mcp.Required(),
+			mcp.MinLength(1),
 			mcp.Description("Page ID to move (with or without dashes)"),
 		),
 		mcp.WithObject("parent",
@@ -218,8 +231,10 @@ func registerPageTools(s *server.MCPServer, client notion.NotionClient) {
 	// delete_page - Archive/delete a page
 	deletePageTool := mcp.NewTool("delete_page",
 		mcp.WithDescription("Archive (delete) a page by setting its archived property to true"),
+		mcp.WithDestructiveHintAnnotation(true),
 		mcp.WithString("page_id",
 			mcp.Required(),
+			mcp.MinLength(1),
 			mcp.Description("Page ID to delete"),
 		),
 	)
@@ -230,8 +245,10 @@ func registerDatabaseTools(s *server.MCPServer, client notion.NotionClient) {
 	// query_database - Query database with filters and sorts
 	queryDatabaseTool := mcp.NewTool("query_database",
 		mcp.WithDescription("Query a database with optional filters, sorts, and pagination"),
+		mcp.WithReadOnlyHintAnnotation(true),
 		mcp.WithString("database_id",
 			mcp.Required(),
+			mcp.MinLength(1),
 			mcp.Description("Database ID to query"),
 		),
 		mcp.WithObject("filter",
@@ -242,6 +259,7 @@ func registerDatabaseTools(s *server.MCPServer, client notion.NotionClient) {
 		),
 		mcp.WithNumber("page_size",
 			mcp.Description("Number of results per page (default: 100, max: 100)"),
+			mcp.Min(1), mcp.Max(100), mcp.DefaultNumber(100),
 		),
 		mcp.WithString("start_cursor",
 			mcp.Description("Pagination cursor from previous response"),
@@ -276,8 +294,10 @@ func registerDatabaseTools(s *server.MCPServer, client notion.NotionClient) {
 	// update_database - Update database properties
 	updateDatabaseTool := mcp.NewTool("update_database",
 		mcp.WithDescription("Update database title, description, or add/modify properties"),
+		mcp.WithIdempotentHintAnnotation(true),
 		mcp.WithString("database_id",
 			mcp.Required(),
+			mcp.MinLength(1),
 			mcp.Description("Database ID to update"),
 		),
 		mcp.WithArray("title",
@@ -300,8 +320,10 @@ func registerBlockTools(s *server.MCPServer, client notion.NotionClient) {
 	// get_block - Get a specific block
 	getBlockTool := mcp.NewTool("get_block",
 		mcp.WithDescription("Get details of a specific block by ID"),
+		mcp.WithReadOnlyHintAnnotation(true),
 		mcp.WithString("block_id",
 			mcp.Required(),
+			mcp.MinLength(1),
 			mcp.Description("Block ID"),
 		),
 	)
@@ -310,12 +332,15 @@ func registerBlockTools(s *server.MCPServer, client notion.NotionClient) {
 	// get_block_children - Get children of a block
 	getBlockChildrenTool := mcp.NewTool("get_block_children",
 		mcp.WithDescription("Get child blocks of a parent block or page"),
+		mcp.WithReadOnlyHintAnnotation(true),
 		mcp.WithString("block_id",
 			mcp.Required(),
+			mcp.MinLength(1),
 			mcp.Description("Parent block or page ID"),
 		),
 		mcp.WithNumber("page_size",
 			mcp.Description("Number of blocks per page (default: 100, max: 100)"),
+			mcp.Min(1), mcp.Max(100), mcp.DefaultNumber(100),
 		),
 		mcp.WithString("start_cursor",
 			mcp.Description("Pagination cursor from previous response"),
@@ -328,6 +353,7 @@ func registerBlockTools(s *server.MCPServer, client notion.NotionClient) {
 		mcp.WithDescription("Append child blocks to a page or block"),
 		mcp.WithString("block_id",
 			mcp.Required(),
+			mcp.MinLength(1),
 			mcp.Description("Parent block or page ID to append to"),
 		),
 		mcp.WithArray("children",
@@ -340,8 +366,10 @@ func registerBlockTools(s *server.MCPServer, client notion.NotionClient) {
 	// update_block - Update a block
 	updateBlockTool := mcp.NewTool("update_block",
 		mcp.WithDescription("Update the content of a block"),
+		mcp.WithIdempotentHintAnnotation(true),
 		mcp.WithString("block_id",
 			mcp.Required(),
+			mcp.MinLength(1),
 			mcp.Description("Block ID to update"),
 		),
 	)
@@ -350,8 +378,10 @@ func registerBlockTools(s *server.MCPServer, client notion.NotionClient) {
 	// delete_block - Delete a block
 	deleteBlockTool := mcp.NewTool("delete_block",
 		mcp.WithDescription("Delete a block and its children"),
+		mcp.WithDestructiveHintAnnotation(true),
 		mcp.WithString("block_id",
 			mcp.Required(),
+			mcp.MinLength(1),
 			mcp.Description("Block ID to delete"),
 		),
 	)
@@ -362,6 +392,7 @@ func registerCommentTools(s *server.MCPServer, client notion.NotionClient) {
 	// get_comments - Get comments on a page or block
 	getCommentsTool := mcp.NewTool("get_comments",
 		mcp.WithDescription("Get comments on a page or block"),
+		mcp.WithReadOnlyHintAnnotation(true),
 		mcp.WithString("block_id",
 			mcp.Description("Block ID to get comments for"),
 		),
@@ -370,6 +401,7 @@ func registerCommentTools(s *server.MCPServer, client notion.NotionClient) {
 		),
 		mcp.WithNumber("page_size",
 			mcp.Description("Number of comments per page (default: 100, max: 100)"),
+			mcp.Min(1), mcp.Max(100), mcp.DefaultNumber(100),
 		),
 		mcp.WithString("start_cursor",
 			mcp.Description("Pagination cursor from previous response"),
@@ -399,8 +431,10 @@ func registerUserTools(s *server.MCPServer, client notion.NotionClient) {
 	// list_users - List all users
 	listUsersTool := mcp.NewTool("list_users",
 		mcp.WithDescription("List all users in the workspace"),
+		mcp.WithReadOnlyHintAnnotation(true),
 		mcp.WithNumber("page_size",
 			mcp.Description("Number of users per page (default: 100, max: 100)"),
+			mcp.Min(1), mcp.Max(100), mcp.DefaultNumber(100),
 		),
 		mcp.WithString("start_cursor",
 			mcp.Description("Pagination cursor from previous response"),
@@ -411,8 +445,10 @@ func registerUserTools(s *server.MCPServer, client notion.NotionClient) {
 	// get_user - Get a specific user
 	getUserTool := mcp.NewTool("get_user",
 		mcp.WithDescription("Get details of a specific user by ID"),
+		mcp.WithReadOnlyHintAnnotation(true),
 		mcp.WithString("user_id",
 			mcp.Required(),
+			mcp.MinLength(1),
 			mcp.Description("User ID"),
 		),
 	)
@@ -421,6 +457,7 @@ func registerUserTools(s *server.MCPServer, client notion.NotionClient) {
 	// get_bot_user - Get current bot user info
 	getBotUserTool := mcp.NewTool("get_bot_user",
 		mcp.WithDescription("Get information about the current bot/integration user"),
+		mcp.WithReadOnlyHintAnnotation(true),
 	)
 	s.AddTool(getBotUserTool, tools.GetBotUserHandler(client))
 }
@@ -437,6 +474,7 @@ func registerHelperTools(s *server.MCPServer, client notion.NotionClient) {
 		),
 		mcp.WithString("title",
 			mcp.Required(),
+			mcp.MinLength(1),
 			mcp.Description("Page title"),
 		),
 		mcp.WithString("content",
@@ -450,10 +488,12 @@ func registerHelperTools(s *server.MCPServer, client notion.NotionClient) {
 		mcp.WithDescription("Append markdown-like content to an existing page (easier than append_blocks)"),
 		mcp.WithString("page_id",
 			mcp.Required(),
+			mcp.MinLength(1),
 			mcp.Description("Page ID to append content to"),
 		),
 		mcp.WithString("content",
 			mcp.Required(),
+			mcp.MinLength(1),
 			mcp.Description("Content to append in markdown-like format"),
 		),
 	)
@@ -462,12 +502,15 @@ func registerHelperTools(s *server.MCPServer, client notion.NotionClient) {
 	// search_in_database - Database-specific search
 	searchInDatabaseTool := mcp.NewTool("search_in_database",
 		mcp.WithDescription("Search for entries within a specific database with simple text query"),
+		mcp.WithReadOnlyHintAnnotation(true),
 		mcp.WithString("database_id",
 			mcp.Required(),
+			mcp.MinLength(1),
 			mcp.Description("Database ID to search in"),
 		),
 		mcp.WithString("query",
 			mcp.Required(),
+			mcp.MinLength(1),
 			mcp.Description("Search query text"),
 		),
 		mcp.WithObject("property_filters",
@@ -494,6 +537,7 @@ func registerBatchTools(s *server.MCPServer, client notion.NotionClient) {
 	// batch_update_pages - Update multiple pages
 	batchUpdatePagesTool := mcp.NewTool("batch_update_pages",
 		mcp.WithDescription("Update multiple pages with the same property changes in a batch operation"),
+		mcp.WithIdempotentHintAnnotation(true),
 		mcp.WithArray("page_ids",
 			mcp.Required(),
 			mcp.Description("Array of page IDs to update"),
@@ -519,6 +563,7 @@ func registerBatchTools(s *server.MCPServer, client notion.NotionClient) {
 	// batch_delete_pages - Delete multiple pages
 	batchDeletePagesTool := mcp.NewTool("batch_delete_pages",
 		mcp.WithDescription("Archive (delete) multiple pages in a batch operation"),
+		mcp.WithDestructiveHintAnnotation(true),
 		mcp.WithArray("page_ids",
 			mcp.Required(),
 			mcp.Description("Array of page IDs to archive/delete"),
@@ -536,7 +581,8 @@ func registerTemplateTools(s *server.MCPServer, client notion.NotionClient) {
 		mcp.WithDescription("Create a new page using a predefined template with variable substitution"),
 		mcp.WithString("template_name",
 			mcp.Required(),
-			mcp.Description("Template name: meeting_notes, daily_log, project_brief, sprint_planning, retrospective"),
+			mcp.Enum("meeting_notes", "daily_log", "project_brief", "sprint_planning", "retrospective"),
+			mcp.Description("Template name"),
 		),
 		mcp.WithString("parent_page_id",
 			mcp.Description("Parent page ID (uses workspace root if not provided)"),
@@ -546,6 +592,7 @@ func registerTemplateTools(s *server.MCPServer, client notion.NotionClient) {
 		),
 		mcp.WithString("title",
 			mcp.Required(),
+			mcp.MinLength(1),
 			mcp.Description("Page title (supports variables: {date}, {datetime}, {time}, and custom variables)"),
 		),
 		mcp.WithObject("variables",
@@ -557,6 +604,7 @@ func registerTemplateTools(s *server.MCPServer, client notion.NotionClient) {
 	// list_templates - List available templates
 	listTemplatesTool := mcp.NewTool("list_templates",
 		mcp.WithDescription("List all available page templates with their structure and supported variables"),
+		mcp.WithReadOnlyHintAnnotation(true),
 	)
 	s.AddTool(listTemplatesTool, tools.ListTemplatesHandler(client))
 }
@@ -565,8 +613,10 @@ func registerExportTools(s *server.MCPServer, client notion.NotionClient) {
 	// export_page_as_markdown - Export page as Markdown
 	exportPageAsMarkdownTool := mcp.NewTool("export_page_as_markdown",
 		mcp.WithDescription("Export a Notion page to clean Markdown format with optional frontmatter"),
+		mcp.WithReadOnlyHintAnnotation(true),
 		mcp.WithString("page_id",
 			mcp.Required(),
+			mcp.MinLength(1),
 			mcp.Description("Page ID to export"),
 		),
 		mcp.WithBoolean("include_children",
@@ -581,8 +631,10 @@ func registerExportTools(s *server.MCPServer, client notion.NotionClient) {
 	// export_database_as_csv - Export database as CSV
 	exportDatabaseAsCSVTool := mcp.NewTool("export_database_as_csv",
 		mcp.WithDescription("Export database entries as CSV with all properties"),
+		mcp.WithReadOnlyHintAnnotation(true),
 		mcp.WithString("database_id",
 			mcp.Required(),
+			mcp.MinLength(1),
 			mcp.Description("Database ID to export"),
 		),
 		mcp.WithObject("filter",
@@ -599,14 +651,17 @@ func registerSmartQueryTools(s *server.MCPServer, client notion.NotionClient) {
 	// get_recently_edited - Get recently edited pages
 	getRecentlyEditedTool := mcp.NewTool("get_recently_edited",
 		mcp.WithDescription("Get pages edited within a specified time window"),
+		mcp.WithReadOnlyHintAnnotation(true),
 		mcp.WithNumber("days",
 			mcp.Description("Number of days to look back (default: 7)"),
+			mcp.Min(1), mcp.DefaultNumber(7),
 		),
 		mcp.WithString("database_id",
 			mcp.Description("Optional: limit to specific database"),
 		),
 		mcp.WithNumber("limit",
 			mcp.Description("Maximum number of results (default: 50)"),
+			mcp.Min(1), mcp.DefaultNumber(50),
 		),
 	)
 	s.AddTool(getRecentlyEditedTool, tools.GetRecentlyEditedHandler(client))
@@ -614,6 +669,7 @@ func registerSmartQueryTools(s *server.MCPServer, client notion.NotionClient) {
 	// get_my_tasks - Smart task finder
 	getMyTasksTool := mcp.NewTool("get_my_tasks",
 		mcp.WithDescription("Smart task finder for the current user with flexible property detection"),
+		mcp.WithReadOnlyHintAnnotation(true),
 		mcp.WithString("database_id",
 			mcp.Description("Specific tasks database (searches for task databases if not provided)"),
 		),
@@ -625,6 +681,7 @@ func registerSmartQueryTools(s *server.MCPServer, client notion.NotionClient) {
 		),
 		mcp.WithNumber("limit",
 			mcp.Description("Maximum number of tasks to return (default: 50)"),
+			mcp.Min(1), mcp.DefaultNumber(50),
 		),
 	)
 	s.AddTool(getMyTasksTool, tools.GetMyTasksHandler(client))
@@ -632,8 +689,10 @@ func registerSmartQueryTools(s *server.MCPServer, client notion.NotionClient) {
 	// get_related_pages - Follow page relations
 	getRelatedPagesTool := mcp.NewTool("get_related_pages",
 		mcp.WithDescription("Follow page relations and return connected pages"),
+		mcp.WithReadOnlyHintAnnotation(true),
 		mcp.WithString("page_id",
 			mcp.Required(),
+			mcp.MinLength(1),
 			mcp.Description("Page ID to get relations for"),
 		),
 		mcp.WithString("relation_property",
