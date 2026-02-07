@@ -45,9 +45,9 @@ func SearchHandler(client *notion.Client) func(context.Context, mcp.CallToolRequ
 
 		// Format response
 		response := map[string]any{
-			"count":      len(result.Results),
-			"results":    result.Results,
-			"has_more":   result.HasMore,
+			"count":    len(result.Results),
+			"results":  result.Results,
+			"has_more": result.HasMore,
 		}
 		if result.NextCursor != "" {
 			response["next_cursor"] = result.NextCursor
@@ -136,13 +136,13 @@ func GetDatabaseHandler(client *notion.Client) func(context.Context, mcp.CallToo
 
 		// Format response with database details
 		response := map[string]any{
-			"id":          database.ID,
-			"title":       notion.ExtractPlainText(database.Title),
-			"url":         database.URL,
-			"properties":  database.Properties,
-			"is_inline":   database.IsInline,
-			"archived":    database.Archived,
-			"created_time": database.CreatedTime,
+			"id":               database.ID,
+			"title":            notion.ExtractPlainText(database.Title),
+			"url":              database.URL,
+			"properties":       database.Properties,
+			"is_inline":        database.IsInline,
+			"archived":         database.Archived,
+			"created_time":     database.CreatedTime,
 			"last_edited_time": database.LastEditedTime,
 		}
 

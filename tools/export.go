@@ -68,7 +68,7 @@ func ExportPageAsMarkdownHandler(client *notion.Client) func(context.Context, mc
 
 		// Convert blocks to markdown
 		allBlocks := blocks.Results
-		
+
 		// Handle pagination
 		for blocks.HasMore && blocks.NextCursor != "" {
 			nextBlocks, err := client.GetBlockChildren(ctx, pageID, 100, blocks.NextCursor)
@@ -263,7 +263,7 @@ func exportBlockChildren(ctx context.Context, client *notion.Client, blockID str
 func extractPageTitle(properties map[string]any) string {
 	// Try common title property names
 	titleNames := []string{"title", "Title", "Name", "name"}
-	
+
 	for _, titleName := range titleNames {
 		if prop, ok := properties[titleName]; ok {
 			if propMap, ok := prop.(map[string]any); ok {

@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"strings"
 
 	"github.com/mark3labs/mcp-go/mcp"
 	"github.com/rgabriel/mcp-notion/notion"
@@ -223,14 +224,14 @@ func SearchInDatabaseHandler(client *notion.Client) func(context.Context, mcp.Ca
 							if titleMap, ok := titleItem.(map[string]any); ok {
 								if textMap, ok := titleMap["text"].(map[string]any); ok {
 									if content, ok := textMap["content"].(string); ok {
-										if contains(content, query) {
+										if containsIgnoreCase(content, query) {
 											matches = true
 											break
 										}
 									}
 								}
 								if plainText, ok := titleMap["plain_text"].(string); ok {
-									if contains(plainText, query) {
+									if containsIgnoreCase(plainText, query) {
 										matches = true
 										break
 									}
@@ -243,7 +244,7 @@ func SearchInDatabaseHandler(client *notion.Client) func(context.Context, mcp.Ca
 						for _, rtItem := range richTextArray {
 							if rtMap, ok := rtItem.(map[string]any); ok {
 								if plainText, ok := rtMap["plain_text"].(string); ok {
-									if contains(plainText, query) {
+									if containsIgnoreCase(plainText, query) {
 										matches = true
 										break
 									}
@@ -278,36 +279,7 @@ func SearchInDatabaseHandler(client *notion.Client) func(context.Context, mcp.Ca
 	}
 }
 
-// contains is a case-insensitive substring check helper
-func contains(s, substr string) bool {
-	if len(substr) == 0 {
-		return true
-	}
-	if len(s) < len(substr) {
-		return false
-	}
-	
-	// Simple case-insensitive contains
-	sLower := toLower(s)
-	substrLower := toLower(substr)
-	
-	for i := 0; i <= len(sLower)-len(substrLower); i++ {
-		if sLower[i:i+len(substrLower)] == substrLower {
-			return true
-		}
-	}
-	return false
-}
-
-// toLower is a simple lowercase converter
-func toLower(s string) string {
-	result := make([]byte, len(s))
-	for i := 0; i < len(s); i++ {
-		c := s[i]
-		if c >= 'A' && c <= 'Z' {
-			c = c + ('a' - 'A')
-		}
-		result[i] = c
-	}
-	return string(result)
+// containsIgnoreCase is a case-insensitive substring check helper.
+func containsIgnoreCase(s, substr string) bool {
+	return strings.Contains(strings.ToLower(s), strings.ToLower(substr))
 }

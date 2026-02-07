@@ -6,6 +6,8 @@ import (
 	"time"
 )
 
+var numberedListRegexp = regexp.MustCompile(`^\d+\.\s`)
+
 // NewRichText creates a simple rich text array from a string
 func NewRichText(content string) []RichText {
 	return []RichText{
@@ -380,21 +382,7 @@ func MarkdownToBlocks(markdown string) []Block {
 			continue
 		}
 
-		// Bulleted list
-		if strings.HasPrefix(trimmed, "- ") || strings.HasPrefix(trimmed, "* ") {
-			text := strings.TrimPrefix(strings.TrimPrefix(trimmed, "- "), "* ")
-			blocks = append(blocks, NewBulletedListItemBlock(text))
-			continue
-		}
-
-		// Numbered list (simple detection)
-		if matched, _ := regexp.MatchString(`^\d+\.\s`, trimmed); matched {
-			text := regexp.MustCompile(`^\d+\.\s`).ReplaceAllString(trimmed, "")
-			blocks = append(blocks, NewNumberedListItemBlock(text))
-			continue
-		}
-
-		// To-do items
+		// To-do items (must be checked before bulleted list since "- [ ]" starts with "- ")
 		if strings.HasPrefix(trimmed, "- [ ] ") {
 			text := strings.TrimPrefix(trimmed, "- [ ] ")
 			blocks = append(blocks, NewToDoBlock(text, false))
@@ -403,6 +391,20 @@ func MarkdownToBlocks(markdown string) []Block {
 		if strings.HasPrefix(trimmed, "- [x] ") || strings.HasPrefix(trimmed, "- [X] ") {
 			text := strings.TrimPrefix(strings.TrimPrefix(trimmed, "- [x] "), "- [X] ")
 			blocks = append(blocks, NewToDoBlock(text, true))
+			continue
+		}
+
+		// Bulleted list
+		if strings.HasPrefix(trimmed, "- ") || strings.HasPrefix(trimmed, "* ") {
+			text := strings.TrimPrefix(strings.TrimPrefix(trimmed, "- "), "* ")
+			blocks = append(blocks, NewBulletedListItemBlock(text))
+			continue
+		}
+
+		// Numbered list (simple detection)
+		if numberedListRegexp.MatchString(trimmed) {
+			text := numberedListRegexp.ReplaceAllString(trimmed, "")
+			blocks = append(blocks, NewNumberedListItemBlock(text))
 			continue
 		}
 

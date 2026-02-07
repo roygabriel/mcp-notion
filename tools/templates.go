@@ -249,7 +249,7 @@ func ListTemplatesHandler(client *notion.Client) func(context.Context, mcp.CallT
 		templateList := make([]map[string]any, 0, len(templates))
 		for name, template := range templates {
 			blocks := template.Blocks()
-			
+
 			// Extract structure preview
 			structure := make([]string, 0, len(blocks))
 			for _, block := range blocks {

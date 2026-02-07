@@ -89,9 +89,9 @@ func GetRecentlyEditedHandler(client *notion.Client) func(context.Context, mcp.C
 
 		// Format response
 		response := map[string]any{
-			"count":        len(filtered),
-			"cutoff_date":  cutoffTime.Format("2006-01-02"),
-			"pages":        filtered,
+			"count":       len(filtered),
+			"cutoff_date": cutoffTime.Format("2006-01-02"),
+			"pages":       filtered,
 		}
 
 		jsonData, err := json.MarshalIndent(response, "", "  ")

@@ -45,10 +45,10 @@ type Parent struct {
 
 // Icon represents a page or database icon
 type Icon struct {
-	Type     string  `json:"type"`
-	Emoji    string  `json:"emoji,omitempty"`
-	External *File   `json:"external,omitempty"`
-	File     *File   `json:"file,omitempty"`
+	Type     string `json:"type"`
+	Emoji    string `json:"emoji,omitempty"`
+	External *File  `json:"external,omitempty"`
+	File     *File  `json:"file,omitempty"`
 }
 
 // Cover represents a page cover image
@@ -82,79 +82,79 @@ type Page struct {
 
 // Database represents a Notion database
 type Database struct {
-	Object         string                  `json:"object"`
-	ID             string                  `json:"id"`
-	CreatedTime    time.Time               `json:"created_time"`
-	LastEditedTime time.Time               `json:"last_edited_time"`
-	CreatedBy      *User                   `json:"created_by,omitempty"`
-	LastEditedBy   *User                   `json:"last_edited_by,omitempty"`
-	Title          []RichText              `json:"title"`
-	Description    []RichText              `json:"description,omitempty"`
-	Icon           *Icon                   `json:"icon,omitempty"`
-	Cover          *Cover                  `json:"cover,omitempty"`
-	Properties     map[string]PropertyDef  `json:"properties"`
-	Parent         *Parent                 `json:"parent"`
-	Archived       bool                    `json:"archived"`
-	IsInline       bool                    `json:"is_inline"`
-	URL            string                  `json:"url"`
+	Object         string                 `json:"object"`
+	ID             string                 `json:"id"`
+	CreatedTime    time.Time              `json:"created_time"`
+	LastEditedTime time.Time              `json:"last_edited_time"`
+	CreatedBy      *User                  `json:"created_by,omitempty"`
+	LastEditedBy   *User                  `json:"last_edited_by,omitempty"`
+	Title          []RichText             `json:"title"`
+	Description    []RichText             `json:"description,omitempty"`
+	Icon           *Icon                  `json:"icon,omitempty"`
+	Cover          *Cover                 `json:"cover,omitempty"`
+	Properties     map[string]PropertyDef `json:"properties"`
+	Parent         *Parent                `json:"parent"`
+	Archived       bool                   `json:"archived"`
+	IsInline       bool                   `json:"is_inline"`
+	URL            string                 `json:"url"`
 }
 
 // PropertyDef represents a database property schema definition
 type PropertyDef struct {
-	ID          string         `json:"id,omitempty"`
-	Name        string         `json:"name,omitempty"`
-	Type        string         `json:"type"`
-	Title       map[string]any `json:"title,omitempty"`
-	RichText    map[string]any `json:"rich_text,omitempty"`
-	Number      map[string]any `json:"number,omitempty"`
-	Select      map[string]any `json:"select,omitempty"`
-	MultiSelect map[string]any `json:"multi_select,omitempty"`
-	Date        map[string]any `json:"date,omitempty"`
-	People      map[string]any `json:"people,omitempty"`
-	Files       map[string]any `json:"files,omitempty"`
-	Checkbox    map[string]any `json:"checkbox,omitempty"`
-	URL         map[string]any `json:"url,omitempty"`
-	Email       map[string]any `json:"email,omitempty"`
-	PhoneNumber map[string]any `json:"phone_number,omitempty"`
-	Formula     map[string]any `json:"formula,omitempty"`
-	Relation    map[string]any `json:"relation,omitempty"`
-	Rollup      map[string]any `json:"rollup,omitempty"`
-	CreatedTime map[string]any `json:"created_time,omitempty"`
-	CreatedBy   map[string]any `json:"created_by,omitempty"`
+	ID             string         `json:"id,omitempty"`
+	Name           string         `json:"name,omitempty"`
+	Type           string         `json:"type"`
+	Title          map[string]any `json:"title,omitempty"`
+	RichText       map[string]any `json:"rich_text,omitempty"`
+	Number         map[string]any `json:"number,omitempty"`
+	Select         map[string]any `json:"select,omitempty"`
+	MultiSelect    map[string]any `json:"multi_select,omitempty"`
+	Date           map[string]any `json:"date,omitempty"`
+	People         map[string]any `json:"people,omitempty"`
+	Files          map[string]any `json:"files,omitempty"`
+	Checkbox       map[string]any `json:"checkbox,omitempty"`
+	URL            map[string]any `json:"url,omitempty"`
+	Email          map[string]any `json:"email,omitempty"`
+	PhoneNumber    map[string]any `json:"phone_number,omitempty"`
+	Formula        map[string]any `json:"formula,omitempty"`
+	Relation       map[string]any `json:"relation,omitempty"`
+	Rollup         map[string]any `json:"rollup,omitempty"`
+	CreatedTime    map[string]any `json:"created_time,omitempty"`
+	CreatedBy      map[string]any `json:"created_by,omitempty"`
 	LastEditedTime map[string]any `json:"last_edited_time,omitempty"`
 	LastEditedBy   map[string]any `json:"last_edited_by,omitempty"`
 }
 
 // Block represents a Notion block
 type Block struct {
-	Object         string     `json:"object"`
-	ID             string     `json:"id,omitempty"`
-	Type           string     `json:"type"`
-	CreatedTime    time.Time  `json:"created_time,omitempty"`
-	LastEditedTime time.Time  `json:"last_edited_time,omitempty"`
-	CreatedBy      *User      `json:"created_by,omitempty"`
-	LastEditedBy   *User      `json:"last_edited_by,omitempty"`
-	HasChildren    bool       `json:"has_children,omitempty"`
-	Archived       bool       `json:"archived,omitempty"`
-	
+	Object         string    `json:"object"`
+	ID             string    `json:"id,omitempty"`
+	Type           string    `json:"type"`
+	CreatedTime    time.Time `json:"created_time,omitempty"`
+	LastEditedTime time.Time `json:"last_edited_time,omitempty"`
+	CreatedBy      *User     `json:"created_by,omitempty"`
+	LastEditedBy   *User     `json:"last_edited_by,omitempty"`
+	HasChildren    bool      `json:"has_children,omitempty"`
+	Archived       bool      `json:"archived,omitempty"`
+
 	// Block type-specific fields
-	Paragraph         *RichTextBlock       `json:"paragraph,omitempty"`
-	Heading1          *RichTextBlock       `json:"heading_1,omitempty"`
-	Heading2          *RichTextBlock       `json:"heading_2,omitempty"`
-	Heading3          *RichTextBlock       `json:"heading_3,omitempty"`
-	BulletedListItem  *RichTextBlock       `json:"bulleted_list_item,omitempty"`
-	NumberedListItem  *RichTextBlock       `json:"numbered_list_item,omitempty"`
-	ToDo              *ToDoBlock           `json:"to_do,omitempty"`
-	Toggle            *RichTextBlock       `json:"toggle,omitempty"`
-	Code              *CodeBlock           `json:"code,omitempty"`
-	Quote             *RichTextBlock       `json:"quote,omitempty"`
-	Callout           *CalloutBlock        `json:"callout,omitempty"`
-	Divider           map[string]any       `json:"divider,omitempty"`
-	TableOfContents   map[string]any       `json:"table_of_contents,omitempty"`
-	Bookmark          *BookmarkBlock       `json:"bookmark,omitempty"`
-	LinkToPage        *LinkToPageBlock     `json:"link_to_page,omitempty"`
-	ChildPage         *ChildPageBlock      `json:"child_page,omitempty"`
-	ChildDatabase     *ChildDatabaseBlock  `json:"child_database,omitempty"`
+	Paragraph        *RichTextBlock      `json:"paragraph,omitempty"`
+	Heading1         *RichTextBlock      `json:"heading_1,omitempty"`
+	Heading2         *RichTextBlock      `json:"heading_2,omitempty"`
+	Heading3         *RichTextBlock      `json:"heading_3,omitempty"`
+	BulletedListItem *RichTextBlock      `json:"bulleted_list_item,omitempty"`
+	NumberedListItem *RichTextBlock      `json:"numbered_list_item,omitempty"`
+	ToDo             *ToDoBlock          `json:"to_do,omitempty"`
+	Toggle           *RichTextBlock      `json:"toggle,omitempty"`
+	Code             *CodeBlock          `json:"code,omitempty"`
+	Quote            *RichTextBlock      `json:"quote,omitempty"`
+	Callout          *CalloutBlock       `json:"callout,omitempty"`
+	Divider          map[string]any      `json:"divider,omitempty"`
+	TableOfContents  map[string]any      `json:"table_of_contents,omitempty"`
+	Bookmark         *BookmarkBlock      `json:"bookmark,omitempty"`
+	LinkToPage       *LinkToPageBlock    `json:"link_to_page,omitempty"`
+	ChildPage        *ChildPageBlock     `json:"child_page,omitempty"`
+	ChildDatabase    *ChildDatabaseBlock `json:"child_database,omitempty"`
 }
 
 // RichTextBlock represents blocks that contain rich text
@@ -314,11 +314,11 @@ func (e *NotionError) Error() string {
 
 // SearchRequest represents a search request
 type SearchRequest struct {
-	Query  string         `json:"query,omitempty"`
-	Filter map[string]any `json:"filter,omitempty"`
-	Sort   map[string]any `json:"sort,omitempty"`
-	PageSize int          `json:"page_size,omitempty"`
-	StartCursor string    `json:"start_cursor,omitempty"`
+	Query       string         `json:"query,omitempty"`
+	Filter      map[string]any `json:"filter,omitempty"`
+	Sort        map[string]any `json:"sort,omitempty"`
+	PageSize    int            `json:"page_size,omitempty"`
+	StartCursor string         `json:"start_cursor,omitempty"`
 }
 
 // QueryDatabaseRequest represents a database query request
@@ -362,10 +362,10 @@ type CreateDatabaseRequest struct {
 
 // UpdateDatabaseRequest represents an update database request
 type UpdateDatabaseRequest struct {
-	Title      []RichText             `json:"title,omitempty"`
-	Description []RichText            `json:"description,omitempty"`
-	Properties map[string]PropertyDef `json:"properties,omitempty"`
-	Archived   *bool                  `json:"archived,omitempty"`
+	Title       []RichText             `json:"title,omitempty"`
+	Description []RichText             `json:"description,omitempty"`
+	Properties  map[string]PropertyDef `json:"properties,omitempty"`
+	Archived    *bool                  `json:"archived,omitempty"`
 }
 
 // AppendBlockChildrenRequest represents a request to append block children
