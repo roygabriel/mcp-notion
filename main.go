@@ -5,7 +5,11 @@ import (
 	"log"
 	"log/slog"
 	"os"
+	"os/signal"
+	"syscall"
+	"time"
 
+	"github.com/google/uuid"
 	"github.com/mark3labs/mcp-go/mcp"
 	"github.com/mark3labs/mcp-go/server"
 	"github.com/rgabriel/mcp-notion/config"
@@ -39,12 +43,13 @@ func main() {
 		log.Fatalf("Failed to connect to Notion API (check your token): %v", err)
 	}
 
-	// Create MCP server
+	// Create MCP server with observability middleware
 	s := server.NewMCPServer(
 		"Notion MCP Server",
 		version,
 		server.WithToolCapabilities(false),
 		server.WithRecovery(),
+		server.WithToolHandlerMiddleware(observabilityMiddleware()),
 	)
 
 	// Register Search & Discovery tools
@@ -90,9 +95,51 @@ func main() {
 		"timeout_seconds", cfg.NotionTimeout,
 	)
 
-	// Start the stdio server
-	if err := server.ServeStdio(s); err != nil {
-		log.Fatalf("Server error: %v", err)
+	// Start the stdio server with graceful shutdown
+	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	defer stop()
+
+	stdioServer := server.NewStdioServer(s)
+	if err := stdioServer.Listen(ctx, os.Stdin, os.Stdout); err != nil {
+		if ctx.Err() == nil {
+			log.Fatalf("Server error: %v", err)
+		}
+		slog.Info("server shutting down gracefully")
+	}
+}
+
+func observabilityMiddleware() server.ToolHandlerMiddleware {
+	return func(next server.ToolHandlerFunc) server.ToolHandlerFunc {
+		return func(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+			requestID := uuid.New().String()[:8]
+			toolName := req.Params.Name
+			start := time.Now()
+
+			slog.Info("tool call started",
+				"tool", toolName,
+				"request_id", requestID,
+			)
+
+			result, err := next(ctx, req)
+
+			duration := time.Since(start)
+			if err != nil {
+				slog.Info("tool call failed",
+					"tool", toolName,
+					"request_id", requestID,
+					"duration_ms", duration.Milliseconds(),
+					"error", err.Error(),
+				)
+			} else {
+				slog.Info("tool call completed",
+					"tool", toolName,
+					"request_id", requestID,
+					"duration_ms", duration.Milliseconds(),
+				)
+			}
+
+			return result, err
+		}
 	}
 }
 
