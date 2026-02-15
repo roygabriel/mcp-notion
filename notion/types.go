@@ -1,3 +1,5 @@
+// Package notion provides a client for the Notion API with rate limiting,
+// circuit breaker, and retry support.
 package notion
 
 import "time"
@@ -308,6 +310,7 @@ type NotionError struct {
 	Message string `json:"message"`
 }
 
+// Error returns the error message from the Notion API response.
 func (e *NotionError) Error() string {
 	return e.Message
 }

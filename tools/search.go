@@ -1,3 +1,4 @@
+// Package tools implements MCP tool handlers for interacting with the Notion API.
 package tools
 
 import (
