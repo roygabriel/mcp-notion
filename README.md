@@ -1,23 +1,25 @@
 # Notion MCP Server
 
-[![Go](https://img.shields.io/badge/Go-1.25-00ADD8?logo=go)](https://go.dev)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
-
-A Model Context Protocol (MCP) server that connects AI assistants to Notion workspaces via the official REST API. Search, read, create, and manage pages, databases, blocks, comments, and users.
+A Model Context Protocol (MCP) server that connects AI assistants to Notion workspaces via the official REST API. Search, read, create, and manage pages, databases, blocks, comments, and users — all through a standardized tool interface.
 
 ## Features
 
-- **Search & Discovery** — Search across pages and databases, list all databases
+- **Search & Discovery** — Full-text search across pages and databases, list all databases
 - **Page Management** — Get, create, update, move, and delete pages with full property support
-- **Database Operations** — Query with complex filters, create and update database schemas
+- **Database Operations** — Query with complex filters and sorts, create and update database schemas
 - **Block Management** — Read, append, update, and delete content blocks
-- **Comments** — Read and create comments on pages and blocks
-- **User Management** — List workspace users, get user details
-- **Helper Tools** — Simplified page creation with markdown-like syntax
-- **Batch Operations** — Create, update, or delete multiple pages with rate limiting
-- **Templates** — Create pages from built-in templates (meeting notes, daily log, etc.)
-- **Export** — Export pages as Markdown and databases as CSV
+- **Comments** — Read and create comments on pages and discussion threads
+- **User Management** — List workspace users, get user details, identify bot user
+- **Helper Tools** — Simplified page creation with markdown-like syntax, in-database search
+- **Batch Operations** — Create, update, or delete multiple pages with rate limiting and error recovery
+- **Templates** — Create pages from built-in templates (meeting notes, daily log, project brief, sprint planning, retrospective)
+- **Export** — Export pages as Markdown (with optional frontmatter) and databases as CSV
 - **Smart Queries** — Recently edited pages, task finder, relation follower
+- **Circuit Breaker** — Automatic failure detection with three-state circuit breaker (closed/open/half-open) to prevent cascading failures
+- **Secret Redaction** — API tokens and secrets are automatically redacted from all log output
+- **Audit Logging** — Destructive operations (create, update, delete) are logged with full argument details
+- **Concurrency Control** — Configurable semaphore limits concurrent tool executions
+- **Hardened Transport** — TLS 1.2 minimum, granular connection timeouts, response body size limits
 - **Cross-Platform** — Linux, macOS, and Windows
 
 ## Prerequisites
@@ -25,6 +27,25 @@ A Model Context Protocol (MCP) server that connects AI assistants to Notion work
 - **Go 1.25+** — [Install Go](https://go.dev/doc/install)
 - **Notion Account** with access to create integrations
 - **Notion Integration Token** — Create one at [notion.so/my-integrations](https://www.notion.so/my-integrations)
+
+## Getting Your Notion Integration Token
+
+1. Go to [notion.so/my-integrations](https://www.notion.so/my-integrations)
+2. Click **New integration**
+3. Give it a name (e.g., "MCP Server")
+4. Select the workspace you want to connect
+5. Under **Capabilities**, enable the permissions your use case requires:
+   - **Read content** — required for all read operations
+   - **Update content** — required for create, update, and delete operations
+   - **Insert content** — required for creating pages and appending blocks
+   - **Read comments** — required for reading comments
+   - **Insert comments** — required for creating comments
+   - **Read user information** — required for user-related tools
+6. Click **Submit** to create the integration
+7. Copy the **Internal Integration Secret** (starts with `secret_`)
+8. Share pages and databases with the integration: open a page in Notion, click the **...** menu, select **Add connections**, and choose your integration
+
+> **Important:** The integration can only access pages and databases that have been explicitly shared with it. If you get "object not found" errors, make sure you've shared the relevant pages.
 
 ## Installation
 
@@ -52,8 +73,6 @@ Copy `.env.example` to `.env` for local development:
 cp .env.example .env
 # Edit .env and set NOTION_API_TOKEN
 ```
-
-**Important:** You must share each page/database with your integration via the "..." menu → "Add connections" in Notion. Without this, you'll get "object not found" errors.
 
 ## Usage with Claude Desktop
 
@@ -194,19 +213,46 @@ Available templates: `meeting_notes`, `daily_log`, `project_brief`, `sprint_plan
 | `get_my_tasks` | Find tasks assigned to bot user | — |
 | `get_related_pages` | Follow page relations | `page_id` |
 
-## Examples
+## Notion-Specific Features
 
+### Property Types
+
+Notion databases support many property types. When creating or updating pages, use the appropriate property format:
+
+- **Title** — `{"title": [{"text": {"content": "Page name"}}]}`
+- **Rich Text** — `{"rich_text": [{"text": {"content": "Text value"}}]}`
+- **Number** — `{"number": 42}`
+- **Select** — `{"select": {"name": "Option"}}`
+- **Multi-Select** — `{"multi_select": [{"name": "Tag1"}, {"name": "Tag2"}]}`
+- **Date** — `{"date": {"start": "2024-01-15"}}`
+- **Checkbox** — `{"checkbox": true}`
+- **URL** — `{"url": "https://example.com"}`
+- **Email** — `{"email": "user@example.com"}`
+- **Phone** — `{"phone_number": "+1-555-0123"}`
+
+### Filter Syntax
+
+Use `query_database` with Notion's filter format:
+
+```json
+{
+  "filter": {
+    "and": [
+      {"property": "Status", "select": {"equals": "In Progress"}},
+      {"property": "Priority", "select": {"equals": "High"}}
+    ]
+  },
+  "sorts": [
+    {"property": "Due Date", "direction": "ascending"}
+  ]
+}
 ```
-"Search for all pages about project planning"
 
-"Create a meeting notes page titled 'Team Sync - Feb 3' with sections for discussion and action items"
+## Rate Limiting
 
-"Query the Tasks database for all items where Status is 'In Progress' and Priority is 'High'"
+The server enforces a 3 requests/second rate limit against the Notion API with automatic retries and exponential backoff. Batch operations add 350ms delays between individual requests to stay within limits.
 
-"Export the Q1 Planning page as Markdown with frontmatter"
-
-"Show me pages I edited in the last 3 days"
-```
+If the circuit breaker detects 5 consecutive API failures (5xx errors or connection failures), it temporarily blocks outgoing requests for 30 seconds before allowing a probe request to test recovery.
 
 ## Development
 
@@ -233,16 +279,16 @@ NOTION_API_TOKEN="secret_..." make run
 ## Troubleshooting
 
 ### "Object not found" error
-The page/database hasn't been shared with your integration. Open it in Notion → "..." menu → "Add connections" → select your integration.
+The page/database hasn't been shared with your integration. Open it in Notion, click the **...** menu, select **Add connections**, and choose your integration.
 
 ### Authentication failed
 Verify `NOTION_API_TOKEN` is set correctly and starts with `secret_`. Regenerate at [notion.so/my-integrations](https://www.notion.so/my-integrations) if needed.
 
 ### Invalid UUID format
-Extract the 32-character ID from the Notion URL. Both dash and no-dash formats are accepted.
+Extract the 32-character ID from the Notion URL. Both dash and no-dash formats are accepted. Example: `https://notion.so/Page-Title-a1b2c3d4e5f6...` — the ID is the hex string at the end.
 
 ### Rate limiting
-The server enforces 3 req/sec with automatic retries and exponential backoff. Batch operations add 350ms delays between requests.
+The server automatically handles rate limits with retries. If you're seeing persistent rate limit errors, reduce the frequency of batch operations or increase delays.
 
 ### Timeout errors
 Increase `NOTION_TIMEOUT` (default: 30 seconds). Check your network connection.
@@ -250,6 +296,55 @@ Increase `NOTION_TIMEOUT` (default: 30 seconds). Check your network connection.
 ### Property not found
 Use `get_database` to see exact property names — they are case-sensitive.
 
+### Circuit breaker open
+If you see "circuit breaker is open" errors, the Notion API has been returning consecutive failures. The circuit breaker will automatically retry after 30 seconds.
+
+## Architecture
+
+The server is structured as three packages:
+
+- **`main`** — MCP server setup, middleware composition (concurrency control, observability/audit logging, panic recovery), and tool registration
+- **`notion`** — Notion API client with rate limiting (3 req/sec with token bucket), circuit breaker (5-failure threshold, 30s reset), retry with exponential backoff, and hardened HTTP transport
+- **`tools`** — MCP tool handler implementations for all 30+ tools, organized by resource type (pages, databases, blocks, comments, users, batch, templates, export, smart queries)
+- **`config`** — Environment-based configuration loading with `.env` file support
+
+Middleware is applied in this order (outermost to innermost):
+1. **Concurrency limiter** — caps parallel tool executions
+2. **Observability** — logs tool calls with timing; adds audit details for destructive operations
+3. **Recovery** — catches panics and returns error results
+
+## Dependencies
+
+| Package | Purpose |
+|---|---|
+| [mcp-go](https://github.com/mark3labs/mcp-go) | MCP protocol SDK for Go |
+| [resty](https://github.com/go-resty/resty) | HTTP client with retry support |
+| [godotenv](https://github.com/joho/godotenv) | `.env` file loading |
+| [uuid](https://github.com/google/uuid) | UUID generation for request tracing |
+
+## Security Considerations
+
+- **Token handling** — The Notion API token is loaded from environment variables, never hardcoded. The `.env` file is gitignored.
+- **Secret redaction** — All log output passes through a redacting handler that replaces API tokens with `[REDACTED]`.
+- **Audit logging** — Destructive operations (create, update, delete) are logged with their arguments for accountability.
+- **Transport hardening** — TLS 1.2 minimum version, 5-second TLS handshake timeout, 5-second dial timeout, 10 MB response body size limit.
+- **Input validation** — All tool handlers validate required parameters before making API calls. UUID formats are normalized and validated.
+- **No credential storage** — The server is stateless and does not persist credentials.
+
 ## License
 
 MIT License — see [LICENSE](LICENSE) for details.
+
+## Contributing
+
+Contributions are welcome. Please open an issue to discuss changes before submitting a PR.
+
+## Support
+
+For bug reports and feature requests, please [open an issue](https://github.com/rgabriel/mcp-notion/issues).
+
+## Acknowledgments
+
+- [Model Context Protocol](https://modelcontextprotocol.io) specification
+- [mcp-go](https://github.com/mark3labs/mcp-go) SDK
+- [Notion API](https://developers.notion.com) documentation

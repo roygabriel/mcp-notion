@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"log"
 	"log/slog"
 	"os"
@@ -20,18 +21,39 @@ import (
 // Set via -ldflags at build time.
 var version = "dev"
 
-func main() {
-	// Configure structured logging to stderr (MCP uses stdio transport).
-	logger := slog.New(slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{
-		Level: slog.LevelInfo,
-	}))
-	slog.SetDefault(logger)
+// destructiveTools is the set of tool names that modify data and require audit logging.
+var destructiveTools = map[string]bool{
+	"delete_page":              true,
+	"delete_block":             true,
+	"update_page":              true,
+	"update_block":             true,
+	"move_page":                true,
+	"create_page":              true,
+	"create_database":          true,
+	"update_database":          true,
+	"append_blocks":            true,
+	"create_comment":           true,
+	"batch_create_pages":       true,
+	"batch_update_pages":       true,
+	"batch_delete_pages":       true,
+	"create_simple_page":       true,
+	"append_to_page":           true,
+	"create_page_from_template": true,
+}
 
-	// Load configuration
+func main() {
+	// Load configuration first so we can redact secrets in logs.
 	cfg, err := config.Load()
 	if err != nil {
 		log.Fatalf("Configuration error: %v", err)
 	}
+
+	// Configure structured logging to stderr with secret redaction.
+	baseHandler := slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{
+		Level: slog.LevelInfo,
+	})
+	logger := slog.New(newRedactingHandler(baseHandler, cfg.NotionAPIToken))
+	slog.SetDefault(logger)
 
 	// Create Notion client
 	notionClient := notion.NewClient(cfg)
@@ -43,13 +65,14 @@ func main() {
 		log.Fatalf("Failed to connect to Notion API (check your token): %v", err)
 	}
 
-	// Create MCP server with observability middleware
+	// Create MCP server with middleware stack (outermost first).
 	s := server.NewMCPServer(
 		"Notion MCP Server",
 		version,
 		server.WithToolCapabilities(false),
-		server.WithRecovery(),
+		server.WithToolHandlerMiddleware(concurrencyMiddleware(10)),
 		server.WithToolHandlerMiddleware(observabilityMiddleware()),
+		server.WithRecovery(),
 	)
 
 	// Register Search & Discovery tools
@@ -115,10 +138,20 @@ func observabilityMiddleware() server.ToolHandlerMiddleware {
 			toolName := req.Params.Name
 			start := time.Now()
 
-			slog.Info("tool call started",
-				"tool", toolName,
-				"request_id", requestID,
-			)
+			attrs := []slog.Attr{
+				slog.String("tool", toolName),
+				slog.String("request_id", requestID),
+			}
+
+			// Audit logging for destructive operations
+			if destructiveTools[toolName] {
+				attrs = append(attrs, slog.Bool("audit", true))
+				if argsJSON, err := json.Marshal(req.GetArguments()); err == nil {
+					attrs = append(attrs, slog.String("arguments", string(argsJSON)))
+				}
+			}
+
+			slog.LogAttrs(ctx, slog.LevelInfo, "tool call started", attrs...)
 
 			result, err := next(ctx, req)
 
@@ -139,6 +172,21 @@ func observabilityMiddleware() server.ToolHandlerMiddleware {
 			}
 
 			return result, err
+		}
+	}
+}
+
+func concurrencyMiddleware(maxConcurrent int) server.ToolHandlerMiddleware {
+	sem := make(chan struct{}, maxConcurrent)
+	return func(next server.ToolHandlerFunc) server.ToolHandlerFunc {
+		return func(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+			select {
+			case sem <- struct{}{}:
+				defer func() { <-sem }()
+				return next(ctx, req)
+			case <-ctx.Done():
+				return nil, ctx.Err()
+			}
 		}
 	}
 }
