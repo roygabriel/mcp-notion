@@ -60,7 +60,7 @@ func TestConcurrencyMiddleware_BlocksBeyondMax(t *testing.T) {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
-			handler(context.Background(), mcp.CallToolRequest{})
+			_, _ = handler(context.Background(), mcp.CallToolRequest{})
 		}()
 	}
 
@@ -70,7 +70,7 @@ func TestConcurrencyMiddleware_BlocksBeyondMax(t *testing.T) {
 	// Launch one extra goroutine that should be blocked.
 	extraDone := make(chan struct{})
 	go func() {
-		handler(context.Background(), mcp.CallToolRequest{})
+		_, _ = handler(context.Background(), mcp.CallToolRequest{})
 		close(extraDone)
 	}()
 
@@ -109,7 +109,7 @@ func TestConcurrencyMiddleware_ContextCancellation(t *testing.T) {
 
 	// Occupy the single slot.
 	go func() {
-		handler(context.Background(), mcp.CallToolRequest{})
+		_, _ = handler(context.Background(), mcp.CallToolRequest{})
 	}()
 	time.Sleep(50 * time.Millisecond)
 

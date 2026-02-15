@@ -138,7 +138,7 @@ func notionErrorHandler(status int, code, message string) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(status)
-		json.NewEncoder(w).Encode(NotionError{
+		_ = json.NewEncoder(w).Encode(NotionError{
 			Object:  "error",
 			Status:  status,
 			Code:    code,
@@ -218,7 +218,7 @@ func TestHandleError_ObjectNotFound(t *testing.T) {
 func TestHandleError_NonJSONBody(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(502)
-		fmt.Fprint(w, "Bad Gateway")
+		_, _ = fmt.Fprint(w, "Bad Gateway")
 	}))
 	defer server.Close()
 
@@ -356,7 +356,7 @@ func TestSearch_Success(t *testing.T) {
 			t.Errorf("expected POST, got %s", r.Method)
 		}
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(SearchResponse{
+		_ = json.NewEncoder(w).Encode(SearchResponse{
 			Object:  "list",
 			Results: []SearchResult{{Object: "page", ID: validUUID}},
 		})
@@ -390,13 +390,13 @@ func TestSearch_PageSizeClamping(t *testing.T) {
 			mux := http.NewServeMux()
 			mux.HandleFunc("/search", func(w http.ResponseWriter, r *http.Request) {
 				var req SearchRequest
-				json.NewDecoder(r.Body).Decode(&req)
+				_ = json.NewDecoder(r.Body).Decode(&req)
 				gotPageSize = req.PageSize
 				w.Header().Set("Content-Type", "application/json")
-				json.NewEncoder(w).Encode(SearchResponse{Object: "list"})
+				_ = json.NewEncoder(w).Encode(SearchResponse{Object: "list"})
 			})
 			c := newTestClient(t, mux)
-			c.Search(context.Background(), &SearchRequest{PageSize: tt.pageSize})
+			_, _ = c.Search(context.Background(), &SearchRequest{PageSize: tt.pageSize})
 			if gotPageSize != tt.want {
 				t.Errorf("PageSize = %d, want %d", gotPageSize, tt.want)
 			}
@@ -486,7 +486,7 @@ func TestGetByID_Success(t *testing.T) {
 					t.Errorf("expected GET, got %s", r.Method)
 				}
 				w.Header().Set("Content-Type", "application/json")
-				fmt.Fprintf(w, `{"object":%q,"id":%q}`, tt.wantObj, validUUID)
+				_, _ = fmt.Fprintf(w, `{"object":%q,"id":%q}`, tt.wantObj, validUUID)
 			})
 			c := newTestClient(t, mux)
 			result, err := tt.call(c, context.Background())
@@ -575,7 +575,7 @@ func TestQueryDatabase_Success(t *testing.T) {
 			t.Errorf("expected POST, got %s", r.Method)
 		}
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(QueryDatabaseResponse{
+		_ = json.NewEncoder(w).Encode(QueryDatabaseResponse{
 			Object:  "list",
 			Results: []Page{{Object: "page", ID: validUUID}},
 		})
@@ -619,7 +619,7 @@ func TestCreateDatabase_Success(t *testing.T) {
 			t.Errorf("expected POST, got %s", r.Method)
 		}
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(Database{Object: "database", ID: validUUID})
+		_ = json.NewEncoder(w).Encode(Database{Object: "database", ID: validUUID})
 	})
 	c := newTestClient(t, mux)
 	resp, err := c.CreateDatabase(context.Background(), &CreateDatabaseRequest{})
@@ -652,7 +652,7 @@ func TestUpdateDatabase_Success(t *testing.T) {
 			t.Errorf("expected PATCH, got %s", r.Method)
 		}
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(Database{Object: "database", ID: validUUID})
+		_ = json.NewEncoder(w).Encode(Database{Object: "database", ID: validUUID})
 	})
 	c := newTestClient(t, mux)
 	resp, err := c.UpdateDatabase(context.Background(), validUUID, &UpdateDatabaseRequest{})
@@ -683,7 +683,7 @@ func TestCreatePage_Success(t *testing.T) {
 			t.Errorf("expected POST, got %s", r.Method)
 		}
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(Page{Object: "page", ID: validUUID})
+		_ = json.NewEncoder(w).Encode(Page{Object: "page", ID: validUUID})
 	})
 	c := newTestClient(t, mux)
 	resp, err := c.CreatePage(context.Background(), &CreatePageRequest{})
@@ -716,7 +716,7 @@ func TestUpdatePage_Success(t *testing.T) {
 			t.Errorf("expected PATCH, got %s", r.Method)
 		}
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(Page{Object: "page", ID: validUUID})
+		_ = json.NewEncoder(w).Encode(Page{Object: "page", ID: validUUID})
 	})
 	c := newTestClient(t, mux)
 	resp, err := c.UpdatePage(context.Background(), validUUID, &UpdatePageRequest{})
@@ -747,7 +747,7 @@ func TestMovePage_Success(t *testing.T) {
 			t.Errorf("expected POST, got %s", r.Method)
 		}
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(Page{Object: "page", ID: validUUID})
+		_ = json.NewEncoder(w).Encode(Page{Object: "page", ID: validUUID})
 	})
 	c := newTestClient(t, mux)
 	resp, err := c.MovePage(context.Background(), validUUID, &MovePageRequest{})
@@ -795,7 +795,7 @@ func TestGetBlockChildren_Success(t *testing.T) {
 			t.Errorf("start_cursor = %q, want abc", r.URL.Query().Get("start_cursor"))
 		}
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(BlockListResponse{
+		_ = json.NewEncoder(w).Encode(BlockListResponse{
 			Object:  "list",
 			Results: []Block{{Object: "block", ID: validUUID, Type: "paragraph"}},
 		})
@@ -839,7 +839,7 @@ func TestAppendBlockChildren_Success(t *testing.T) {
 			t.Errorf("expected PATCH, got %s", r.Method)
 		}
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(BlockListResponse{Object: "list", Results: []Block{{Object: "block", ID: validUUID}}})
+		_ = json.NewEncoder(w).Encode(BlockListResponse{Object: "list", Results: []Block{{Object: "block", ID: validUUID}}})
 	})
 	c := newTestClient(t, mux)
 	resp, err := c.AppendBlockChildren(context.Background(), validUUID, &AppendBlockChildrenRequest{
@@ -872,7 +872,7 @@ func TestUpdateBlock_Success(t *testing.T) {
 			t.Errorf("expected PATCH, got %s", r.Method)
 		}
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(Block{Object: "block", ID: validUUID, Type: "paragraph"})
+		_ = json.NewEncoder(w).Encode(Block{Object: "block", ID: validUUID, Type: "paragraph"})
 	})
 	c := newTestClient(t, mux)
 	resp, err := c.UpdateBlock(context.Background(), validUUID, &Block{Type: "paragraph"})
@@ -903,7 +903,7 @@ func TestDeleteBlock_Success(t *testing.T) {
 			t.Errorf("expected DELETE, got %s", r.Method)
 		}
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(Block{Object: "block", ID: validUUID, Archived: true})
+		_ = json.NewEncoder(w).Encode(Block{Object: "block", ID: validUUID, Archived: true})
 	})
 	c := newTestClient(t, mux)
 	resp, err := c.DeleteBlock(context.Background(), validUUID)
@@ -947,7 +947,7 @@ func TestGetComments_WithBlockID(t *testing.T) {
 			t.Errorf("block_id = %q, want %q", r.URL.Query().Get("block_id"), validUUID)
 		}
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(CommentListResponse{
+		_ = json.NewEncoder(w).Encode(CommentListResponse{
 			Object:  "list",
 			Results: []Comment{{Object: "comment", ID: validUUID}},
 		})
@@ -969,7 +969,7 @@ func TestGetComments_WithPageID(t *testing.T) {
 			t.Errorf("page_id = %q, want %q", r.URL.Query().Get("page_id"), validUUID)
 		}
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(CommentListResponse{Object: "list"})
+		_ = json.NewEncoder(w).Encode(CommentListResponse{Object: "list"})
 	})
 	c := newTestClient(t, mux)
 	_, err := c.GetComments(context.Background(), "", validUUID, 50, "cursor123")
@@ -1013,7 +1013,7 @@ func TestCreateComment_Success(t *testing.T) {
 			t.Errorf("expected POST, got %s", r.Method)
 		}
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(Comment{Object: "comment", ID: validUUID})
+		_ = json.NewEncoder(w).Encode(Comment{Object: "comment", ID: validUUID})
 	})
 	c := newTestClient(t, mux)
 	resp, err := c.CreateComment(context.Background(), &CreateCommentRequest{})
@@ -1046,7 +1046,7 @@ func TestListUsers_Success(t *testing.T) {
 			t.Errorf("expected GET, got %s", r.Method)
 		}
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(UserListResponse{
+		_ = json.NewEncoder(w).Encode(UserListResponse{
 			Object:  "list",
 			Results: []User{{Object: "user", ID: validUUID, Name: "Alice"}},
 		})
@@ -1071,7 +1071,7 @@ func TestListUsers_WithCursor(t *testing.T) {
 			t.Errorf("page_size = %q, want 25", r.URL.Query().Get("page_size"))
 		}
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(UserListResponse{Object: "list"})
+		_ = json.NewEncoder(w).Encode(UserListResponse{Object: "list"})
 	})
 	c := newTestClient(t, mux)
 	_, err := c.ListUsers(context.Background(), 25, "cur123")
@@ -1101,7 +1101,7 @@ func TestGetBotUser_Success(t *testing.T) {
 			t.Errorf("expected GET, got %s", r.Method)
 		}
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(User{Object: "user", ID: validUUID, Type: "bot", Name: "TestBot"})
+		_ = json.NewEncoder(w).Encode(User{Object: "user", ID: validUUID, Type: "bot", Name: "TestBot"})
 	})
 	c := newTestClient(t, mux)
 	resp, err := c.GetBotUser(context.Background())
