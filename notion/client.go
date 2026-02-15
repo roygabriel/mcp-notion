@@ -2,8 +2,11 @@ package notion
 
 import (
 	"context"
+	"crypto/tls"
 	"encoding/json"
 	"fmt"
+	"net"
+	"net/http"
 	"strings"
 	"sync"
 	"time"
@@ -14,17 +17,36 @@ import (
 )
 
 const (
-	baseURL        = "https://api.notion.com/v1"
-	maxRetries     = 5
-	initialBackoff = 1 * time.Second
-	maxBackoff     = 32 * time.Second
+	baseURL             = "https://api.notion.com/v1"
+	maxRetries          = 5
+	initialBackoff      = 1 * time.Second
+	maxBackoff          = 32 * time.Second
+	maxResponseBodySize = 10 * 1024 * 1024 // 10 MB
 )
 
 // Client wraps the Resty HTTP client with Notion-specific functionality
 type Client struct {
-	client      *resty.Client
-	apiVersion  string
-	rateLimiter *RateLimiter
+	client         *resty.Client
+	apiVersion     string
+	rateLimiter    *RateLimiter
+	circuitBreaker *CircuitBreaker
+}
+
+// newHTTPTransport returns an *http.Transport with hardened timeouts and TLS settings.
+func newHTTPTransport() *http.Transport {
+	return &http.Transport{
+		DialContext: (&net.Dialer{
+			Timeout:   5 * time.Second,
+			KeepAlive: 30 * time.Second,
+		}).DialContext,
+		TLSHandshakeTimeout:   5 * time.Second,
+		ResponseHeaderTimeout:  5 * time.Second,
+		ExpectContinueTimeout:  1 * time.Second,
+		MaxIdleConns:           100,
+		MaxIdleConnsPerHost:    10,
+		IdleConnTimeout:        90 * time.Second,
+		TLSClientConfig:        &tls.Config{MinVersion: tls.VersionTLS12},
+	}
 }
 
 // RateLimiter tracks request timestamps to enforce rate limits
@@ -85,8 +107,10 @@ func (r *RateLimiter) Wait() {
 // NewClient creates a new Notion API client
 func NewClient(cfg *config.Config) *Client {
 	client := resty.New()
+	client.SetTransport(newHTTPTransport())
 	client.SetBaseURL(baseURL)
 	client.SetTimeout(time.Duration(cfg.NotionTimeout) * time.Second)
+	client.SetResponseBodyLimit(maxResponseBodySize)
 	client.SetHeader("Authorization", "Bearer "+cfg.NotionAPIToken)
 	client.SetHeader("Notion-Version", cfg.NotionAPIVersion)
 	client.SetHeader("Content-Type", "application/json")
@@ -101,9 +125,10 @@ func NewClient(cfg *config.Config) *Client {
 	})
 
 	return &Client{
-		client:      client,
-		apiVersion:  cfg.NotionAPIVersion,
-		rateLimiter: NewRateLimiter(3), // Notion's limit is ~3 req/sec
+		client:         client,
+		apiVersion:     cfg.NotionAPIVersion,
+		rateLimiter:    NewRateLimiter(3), // Notion's limit is ~3 req/sec
+		circuitBreaker: NewCircuitBreaker(),
 	}
 }
 
@@ -126,6 +151,33 @@ func NormalizeID(id string) (string, error) {
 	return parsed.String(), nil
 }
 
+// checkCircuitBreaker returns ErrCircuitOpen if the circuit breaker is open.
+func (c *Client) checkCircuitBreaker() error {
+	if !c.circuitBreaker.Allow() {
+		return ErrCircuitOpen
+	}
+	return nil
+}
+
+// isCircuitBreakerFailure returns true if the response indicates a server-side
+// or connection failure that should trip the circuit breaker. Client errors (4xx)
+// do not trip the breaker.
+func isCircuitBreakerFailure(resp *resty.Response, err error) bool {
+	if err != nil {
+		return true
+	}
+	return resp != nil && resp.StatusCode() >= 500
+}
+
+// recordResult records the outcome of an API call with the circuit breaker.
+func (c *Client) recordResult(resp *resty.Response, err error) {
+	if isCircuitBreakerFailure(resp, err) {
+		c.circuitBreaker.RecordFailure()
+	} else {
+		c.circuitBreaker.RecordSuccess()
+	}
+}
+
 // handleError processes Notion API error responses
 func (c *Client) handleError(resp *resty.Response) error {
 	var notionErr NotionError
@@ -141,6 +193,9 @@ func (c *Client) handleError(resp *resty.Response) error {
 
 // Search searches across all pages and databases
 func (c *Client) Search(ctx context.Context, req *SearchRequest) (*SearchResponse, error) {
+	if err := c.checkCircuitBreaker(); err != nil {
+		return nil, err
+	}
 	c.rateLimiter.Wait()
 
 	if req.PageSize == 0 {
@@ -156,6 +211,8 @@ func (c *Client) Search(ctx context.Context, req *SearchRequest) (*SearchRespons
 		SetResult(&result).
 		Post("/search")
 
+	c.recordResult(resp, err)
+
 	if err != nil {
 		return nil, fmt.Errorf("search request failed: %w", err)
 	}
@@ -169,6 +226,9 @@ func (c *Client) Search(ctx context.Context, req *SearchRequest) (*SearchRespons
 
 // GetDatabase retrieves a database by ID
 func (c *Client) GetDatabase(ctx context.Context, databaseID string) (*Database, error) {
+	if err := c.checkCircuitBreaker(); err != nil {
+		return nil, err
+	}
 	c.rateLimiter.Wait()
 
 	normalizedID, err := NormalizeID(databaseID)
@@ -181,6 +241,8 @@ func (c *Client) GetDatabase(ctx context.Context, databaseID string) (*Database,
 		SetContext(ctx).
 		SetResult(&result).
 		Get("/databases/" + normalizedID)
+
+	c.recordResult(resp, err)
 
 	if err != nil {
 		return nil, fmt.Errorf("get database request failed: %w", err)
@@ -195,6 +257,9 @@ func (c *Client) GetDatabase(ctx context.Context, databaseID string) (*Database,
 
 // QueryDatabase queries a database with filters and sorts
 func (c *Client) QueryDatabase(ctx context.Context, databaseID string, req *QueryDatabaseRequest) (*QueryDatabaseResponse, error) {
+	if err := c.checkCircuitBreaker(); err != nil {
+		return nil, err
+	}
 	c.rateLimiter.Wait()
 
 	normalizedID, err := NormalizeID(databaseID)
@@ -215,6 +280,8 @@ func (c *Client) QueryDatabase(ctx context.Context, databaseID string, req *Quer
 		SetResult(&result).
 		Post("/databases/" + normalizedID + "/query")
 
+	c.recordResult(resp, err)
+
 	if err != nil {
 		return nil, fmt.Errorf("query database request failed: %w", err)
 	}
@@ -228,6 +295,9 @@ func (c *Client) QueryDatabase(ctx context.Context, databaseID string, req *Quer
 
 // CreateDatabase creates a new database
 func (c *Client) CreateDatabase(ctx context.Context, req *CreateDatabaseRequest) (*Database, error) {
+	if err := c.checkCircuitBreaker(); err != nil {
+		return nil, err
+	}
 	c.rateLimiter.Wait()
 
 	var result Database
@@ -236,6 +306,8 @@ func (c *Client) CreateDatabase(ctx context.Context, req *CreateDatabaseRequest)
 		SetBody(req).
 		SetResult(&result).
 		Post("/databases")
+
+	c.recordResult(resp, err)
 
 	if err != nil {
 		return nil, fmt.Errorf("create database request failed: %w", err)
@@ -250,6 +322,9 @@ func (c *Client) CreateDatabase(ctx context.Context, req *CreateDatabaseRequest)
 
 // UpdateDatabase updates a database
 func (c *Client) UpdateDatabase(ctx context.Context, databaseID string, req *UpdateDatabaseRequest) (*Database, error) {
+	if err := c.checkCircuitBreaker(); err != nil {
+		return nil, err
+	}
 	c.rateLimiter.Wait()
 
 	normalizedID, err := NormalizeID(databaseID)
@@ -264,6 +339,8 @@ func (c *Client) UpdateDatabase(ctx context.Context, databaseID string, req *Upd
 		SetResult(&result).
 		Patch("/databases/" + normalizedID)
 
+	c.recordResult(resp, err)
+
 	if err != nil {
 		return nil, fmt.Errorf("update database request failed: %w", err)
 	}
@@ -277,6 +354,9 @@ func (c *Client) UpdateDatabase(ctx context.Context, databaseID string, req *Upd
 
 // GetPage retrieves a page by ID
 func (c *Client) GetPage(ctx context.Context, pageID string) (*Page, error) {
+	if err := c.checkCircuitBreaker(); err != nil {
+		return nil, err
+	}
 	c.rateLimiter.Wait()
 
 	normalizedID, err := NormalizeID(pageID)
@@ -289,6 +369,8 @@ func (c *Client) GetPage(ctx context.Context, pageID string) (*Page, error) {
 		SetContext(ctx).
 		SetResult(&result).
 		Get("/pages/" + normalizedID)
+
+	c.recordResult(resp, err)
 
 	if err != nil {
 		return nil, fmt.Errorf("get page request failed: %w", err)
@@ -303,6 +385,9 @@ func (c *Client) GetPage(ctx context.Context, pageID string) (*Page, error) {
 
 // CreatePage creates a new page
 func (c *Client) CreatePage(ctx context.Context, req *CreatePageRequest) (*Page, error) {
+	if err := c.checkCircuitBreaker(); err != nil {
+		return nil, err
+	}
 	c.rateLimiter.Wait()
 
 	var result Page
@@ -311,6 +396,8 @@ func (c *Client) CreatePage(ctx context.Context, req *CreatePageRequest) (*Page,
 		SetBody(req).
 		SetResult(&result).
 		Post("/pages")
+
+	c.recordResult(resp, err)
 
 	if err != nil {
 		return nil, fmt.Errorf("create page request failed: %w", err)
@@ -325,6 +412,9 @@ func (c *Client) CreatePage(ctx context.Context, req *CreatePageRequest) (*Page,
 
 // UpdatePage updates a page
 func (c *Client) UpdatePage(ctx context.Context, pageID string, req *UpdatePageRequest) (*Page, error) {
+	if err := c.checkCircuitBreaker(); err != nil {
+		return nil, err
+	}
 	c.rateLimiter.Wait()
 
 	normalizedID, err := NormalizeID(pageID)
@@ -339,6 +429,8 @@ func (c *Client) UpdatePage(ctx context.Context, pageID string, req *UpdatePageR
 		SetResult(&result).
 		Patch("/pages/" + normalizedID)
 
+	c.recordResult(resp, err)
+
 	if err != nil {
 		return nil, fmt.Errorf("update page request failed: %w", err)
 	}
@@ -352,6 +444,9 @@ func (c *Client) UpdatePage(ctx context.Context, pageID string, req *UpdatePageR
 
 // MovePage moves a page to a new parent location
 func (c *Client) MovePage(ctx context.Context, pageID string, req *MovePageRequest) (*Page, error) {
+	if err := c.checkCircuitBreaker(); err != nil {
+		return nil, err
+	}
 	c.rateLimiter.Wait()
 
 	normalizedID, err := NormalizeID(pageID)
@@ -366,6 +461,8 @@ func (c *Client) MovePage(ctx context.Context, pageID string, req *MovePageReque
 		SetResult(&result).
 		Post("/pages/" + normalizedID + "/move")
 
+	c.recordResult(resp, err)
+
 	if err != nil {
 		return nil, fmt.Errorf("move page request failed: %w", err)
 	}
@@ -379,6 +476,9 @@ func (c *Client) MovePage(ctx context.Context, pageID string, req *MovePageReque
 
 // GetBlock retrieves a block by ID
 func (c *Client) GetBlock(ctx context.Context, blockID string) (*Block, error) {
+	if err := c.checkCircuitBreaker(); err != nil {
+		return nil, err
+	}
 	c.rateLimiter.Wait()
 
 	normalizedID, err := NormalizeID(blockID)
@@ -391,6 +491,8 @@ func (c *Client) GetBlock(ctx context.Context, blockID string) (*Block, error) {
 		SetContext(ctx).
 		SetResult(&result).
 		Get("/blocks/" + normalizedID)
+
+	c.recordResult(resp, err)
 
 	if err != nil {
 		return nil, fmt.Errorf("get block request failed: %w", err)
@@ -405,6 +507,9 @@ func (c *Client) GetBlock(ctx context.Context, blockID string) (*Block, error) {
 
 // GetBlockChildren retrieves children of a block
 func (c *Client) GetBlockChildren(ctx context.Context, blockID string, pageSize int, startCursor string) (*BlockListResponse, error) {
+	if err := c.checkCircuitBreaker(); err != nil {
+		return nil, err
+	}
 	c.rateLimiter.Wait()
 
 	normalizedID, err := NormalizeID(blockID)
@@ -429,6 +534,8 @@ func (c *Client) GetBlockChildren(ctx context.Context, blockID string, pageSize 
 		SetResult(&result).
 		Get("/blocks/" + normalizedID + "/children")
 
+	c.recordResult(resp, err)
+
 	if err != nil {
 		return nil, fmt.Errorf("get block children request failed: %w", err)
 	}
@@ -442,6 +549,9 @@ func (c *Client) GetBlockChildren(ctx context.Context, blockID string, pageSize 
 
 // AppendBlockChildren appends children to a block
 func (c *Client) AppendBlockChildren(ctx context.Context, blockID string, req *AppendBlockChildrenRequest) (*BlockListResponse, error) {
+	if err := c.checkCircuitBreaker(); err != nil {
+		return nil, err
+	}
 	c.rateLimiter.Wait()
 
 	normalizedID, err := NormalizeID(blockID)
@@ -456,6 +566,8 @@ func (c *Client) AppendBlockChildren(ctx context.Context, blockID string, req *A
 		SetResult(&result).
 		Patch("/blocks/" + normalizedID + "/children")
 
+	c.recordResult(resp, err)
+
 	if err != nil {
 		return nil, fmt.Errorf("append block children request failed: %w", err)
 	}
@@ -469,6 +581,9 @@ func (c *Client) AppendBlockChildren(ctx context.Context, blockID string, req *A
 
 // UpdateBlock updates a block
 func (c *Client) UpdateBlock(ctx context.Context, blockID string, block *Block) (*Block, error) {
+	if err := c.checkCircuitBreaker(); err != nil {
+		return nil, err
+	}
 	c.rateLimiter.Wait()
 
 	normalizedID, err := NormalizeID(blockID)
@@ -483,6 +598,8 @@ func (c *Client) UpdateBlock(ctx context.Context, blockID string, block *Block) 
 		SetResult(&result).
 		Patch("/blocks/" + normalizedID)
 
+	c.recordResult(resp, err)
+
 	if err != nil {
 		return nil, fmt.Errorf("update block request failed: %w", err)
 	}
@@ -496,6 +613,9 @@ func (c *Client) UpdateBlock(ctx context.Context, blockID string, block *Block) 
 
 // DeleteBlock deletes a block
 func (c *Client) DeleteBlock(ctx context.Context, blockID string) (*Block, error) {
+	if err := c.checkCircuitBreaker(); err != nil {
+		return nil, err
+	}
 	c.rateLimiter.Wait()
 
 	normalizedID, err := NormalizeID(blockID)
@@ -508,6 +628,8 @@ func (c *Client) DeleteBlock(ctx context.Context, blockID string) (*Block, error
 		SetContext(ctx).
 		SetResult(&result).
 		Delete("/blocks/" + normalizedID)
+
+	c.recordResult(resp, err)
 
 	if err != nil {
 		return nil, fmt.Errorf("delete block request failed: %w", err)
@@ -522,6 +644,9 @@ func (c *Client) DeleteBlock(ctx context.Context, blockID string) (*Block, error
 
 // GetComments retrieves comments
 func (c *Client) GetComments(ctx context.Context, blockID, pageID string, pageSize int, startCursor string) (*CommentListResponse, error) {
+	if err := c.checkCircuitBreaker(); err != nil {
+		return nil, err
+	}
 	c.rateLimiter.Wait()
 
 	if blockID == "" && pageID == "" {
@@ -559,6 +684,8 @@ func (c *Client) GetComments(ctx context.Context, blockID, pageID string, pageSi
 		SetResult(&result).
 		Get("/comments")
 
+	c.recordResult(resp, err)
+
 	if err != nil {
 		return nil, fmt.Errorf("get comments request failed: %w", err)
 	}
@@ -572,6 +699,9 @@ func (c *Client) GetComments(ctx context.Context, blockID, pageID string, pageSi
 
 // CreateComment creates a comment
 func (c *Client) CreateComment(ctx context.Context, req *CreateCommentRequest) (*Comment, error) {
+	if err := c.checkCircuitBreaker(); err != nil {
+		return nil, err
+	}
 	c.rateLimiter.Wait()
 
 	var result Comment
@@ -580,6 +710,8 @@ func (c *Client) CreateComment(ctx context.Context, req *CreateCommentRequest) (
 		SetBody(req).
 		SetResult(&result).
 		Post("/comments")
+
+	c.recordResult(resp, err)
 
 	if err != nil {
 		return nil, fmt.Errorf("create comment request failed: %w", err)
@@ -594,6 +726,9 @@ func (c *Client) CreateComment(ctx context.Context, req *CreateCommentRequest) (
 
 // ListUsers lists all users
 func (c *Client) ListUsers(ctx context.Context, pageSize int, startCursor string) (*UserListResponse, error) {
+	if err := c.checkCircuitBreaker(); err != nil {
+		return nil, err
+	}
 	c.rateLimiter.Wait()
 
 	if pageSize == 0 {
@@ -613,6 +748,8 @@ func (c *Client) ListUsers(ctx context.Context, pageSize int, startCursor string
 		SetResult(&result).
 		Get("/users")
 
+	c.recordResult(resp, err)
+
 	if err != nil {
 		return nil, fmt.Errorf("list users request failed: %w", err)
 	}
@@ -626,6 +763,9 @@ func (c *Client) ListUsers(ctx context.Context, pageSize int, startCursor string
 
 // GetUser retrieves a user by ID
 func (c *Client) GetUser(ctx context.Context, userID string) (*User, error) {
+	if err := c.checkCircuitBreaker(); err != nil {
+		return nil, err
+	}
 	c.rateLimiter.Wait()
 
 	normalizedID, err := NormalizeID(userID)
@@ -638,6 +778,8 @@ func (c *Client) GetUser(ctx context.Context, userID string) (*User, error) {
 		SetContext(ctx).
 		SetResult(&result).
 		Get("/users/" + normalizedID)
+
+	c.recordResult(resp, err)
 
 	if err != nil {
 		return nil, fmt.Errorf("get user request failed: %w", err)
@@ -652,6 +794,9 @@ func (c *Client) GetUser(ctx context.Context, userID string) (*User, error) {
 
 // GetBotUser retrieves the current bot user
 func (c *Client) GetBotUser(ctx context.Context) (*User, error) {
+	if err := c.checkCircuitBreaker(); err != nil {
+		return nil, err
+	}
 	c.rateLimiter.Wait()
 
 	var result User
@@ -659,6 +804,8 @@ func (c *Client) GetBotUser(ctx context.Context) (*User, error) {
 		SetContext(ctx).
 		SetResult(&result).
 		Get("/users/me")
+
+	c.recordResult(resp, err)
 
 	if err != nil {
 		return nil, fmt.Errorf("get bot user request failed: %w", err)
