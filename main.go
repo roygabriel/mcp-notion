@@ -6,6 +6,7 @@ import (
 	"log/slog"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
 	"time"
 
@@ -20,18 +21,36 @@ import (
 // Set via -ldflags at build time.
 var version = "dev"
 
-func main() {
-	// Configure structured logging to stderr (MCP uses stdio transport).
-	logger := slog.New(slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{
-		Level: slog.LevelInfo,
-	}))
-	slog.SetDefault(logger)
+func parseLogLevel(s string) slog.Level {
+	switch strings.ToUpper(strings.TrimSpace(s)) {
+	case "DEBUG":
+		return slog.LevelDebug
+	case "WARN":
+		return slog.LevelWarn
+	case "ERROR":
+		return slog.LevelError
+	default:
+		return slog.LevelInfo
+	}
+}
 
-	// Load configuration
+func main() {
+	// Load configuration first so we can use its log settings.
 	cfg, err := config.Load()
 	if err != nil {
 		log.Fatalf("Configuration error: %v", err)
 	}
+
+	// Configure structured logging to stderr (MCP uses stdio transport).
+	logLevel := parseLogLevel(cfg.LogLevel)
+	opts := &slog.HandlerOptions{Level: logLevel}
+	var baseHandler slog.Handler
+	if cfg.LogFormat == "text" {
+		baseHandler = slog.NewTextHandler(os.Stderr, opts)
+	} else {
+		baseHandler = slog.NewJSONHandler(os.Stderr, opts)
+	}
+	slog.SetDefault(slog.New(newRedactingHandler(baseHandler, []string{cfg.NotionAPIToken})))
 
 	// Create Notion client
 	notionClient := notion.NewClient(cfg)
@@ -95,9 +114,10 @@ func main() {
 		"timeout_seconds", cfg.NotionTimeout,
 	)
 
-	// Start the stdio server with graceful shutdown
+	// Start the metrics/health HTTP sidecar server.
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
+	go startMetricsServer(ctx, cfg.MetricsAddr)
 
 	stdioServer := server.NewStdioServer(s)
 	if err := stdioServer.Listen(ctx, os.Stdin, os.Stdout); err != nil {
@@ -123,20 +143,33 @@ func observabilityMiddleware() server.ToolHandlerMiddleware {
 			result, err := next(ctx, req)
 
 			duration := time.Since(start)
+			var status string
 			if err != nil {
-				slog.Info("tool call failed",
+				status = "error"
+				slog.Error("tool call failed",
 					"tool", toolName,
 					"request_id", requestID,
 					"duration_ms", duration.Milliseconds(),
 					"error", err.Error(),
 				)
+			} else if result != nil && result.IsError {
+				status = "tool_error"
+				slog.Warn("tool call returned error",
+					"tool", toolName,
+					"request_id", requestID,
+					"duration_ms", duration.Milliseconds(),
+				)
 			} else {
+				status = "success"
 				slog.Info("tool call completed",
 					"tool", toolName,
 					"request_id", requestID,
 					"duration_ms", duration.Milliseconds(),
 				)
 			}
+
+			toolCallsTotal.WithLabelValues(toolName, status).Inc()
+			toolCallDuration.WithLabelValues(toolName).Observe(duration.Seconds())
 
 			return result, err
 		}
